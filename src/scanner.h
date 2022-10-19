@@ -1,5 +1,5 @@
-#ifndef SCANNER
-#define SCANNER
+#ifndef SCANNER_H_
+#define SCANNER_H_
 
 
 
