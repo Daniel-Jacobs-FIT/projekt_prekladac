@@ -1,0 +1,7 @@
+NUTNE UDELAT:
+    - kostra automatu (jeden veliky switch a pomoci enumu stavu)
+    - infrastruktura pro tokeny: -> struct, debug-print, free
+    - logiky stavu v automatu (testovat - neocekavany EOF, ...)
+    - funkci zpracovavajici cely prolog - "<?php" + declare (nutny automat pro odstraneni
+        bilych znaku a komentaru mezi tema dvema vecma)
+    
