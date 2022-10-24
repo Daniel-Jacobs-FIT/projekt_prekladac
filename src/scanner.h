@@ -12,7 +12,7 @@ typedef enum {default_s, div_oper_s, com_oneline} scanner_state; //TODO
 
 /* Enum pro urceni varianty tokenu (je to operator '/' nebo identifikator nebo ...)
  * */
-typedef enum {div_oper} token_var; //TODO
+typedef enum {none, div_oper} token_var; //TODO
 
 /* Struktura predstavujici token
  * content = obsah tokenu (nactene symboly)
@@ -27,7 +27,7 @@ typedef struct token_struct{
 
 bool sign_check(FILE *stream, const char *sign);
 
-void fill_token(token_t* token, char* content, token_var variant, int line_num);
+token_t new_token(char* content, token_var variant, int line_num);
 
 void print_token(token_t *token);
 
