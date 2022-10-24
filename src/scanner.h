@@ -4,7 +4,7 @@
 #include <string.h>
 
 #ifndef SCANNER_H_
-#define SCANNER_H_ 1
+#define SCANNER_H_
 
 /* Enum pro urceni stavu automatu ridiciho lexikalni analyzu
  * */
@@ -31,6 +31,16 @@ typedef enum {none, div_oper, num_oper_var, oper_conc_var,\
                 integ_var, float_dot_num_var, float_e_num_var,\
                 indenif_var, end_prg_var\
 } token_var; //TODO - mozne zjednoduseni, scanneru je lhostejna varianta reprezentace floatu, ...
+/* Makro pro print_token, mapovani enumu na jejich jmena pro lepsi citelnost pri debuggovani
+ * */
+#define ALL_TOKEN_VARS \
+    "none", "div_oper", "num_oper_var", "oper_conc_var", \
+    "eq_or_assign_var", "eq_var", "not_eq_var", \
+    "grt_var", "grt_eq_var", "less_var", "less_eq_var", \
+    "open_rnd_var", "cls_rnd_var", "open_curl_var", \
+    "cls_curl_var", "semicol_var", "string_lit_end_var", \
+    "integ_var", "float_dot_num_var", "float_e_num_var", \
+    "indenif_var", "end_prg_var"
 
 /* Struktura predstavujici token
  * content = obsah tokenu (nactene symboly)
@@ -43,9 +53,11 @@ typedef struct token_struct{
     int line_num;
 } token_t;
 
-bool sign_check(FILE *stream, const char *sign);
+bool sign_check(char *sign);
 
-token_t new_token(char* content, token_var variant, int line_num);
+void fsm_step(char input, token_t *token);
+
+token_t create_token(char* content, token_var variant, int line_num);
 
 void print_token(token_t *token);
 
