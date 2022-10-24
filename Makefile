@@ -4,7 +4,7 @@ CFLAGS=-Wall -Wextra -Wpedantic -g
 CC=gcc
 PROJECT-NAME=ifj22compiler
 
-${PROJECT-NAME}: ${OBJS}
+${PROJECT-NAME}: clean ${OBJS}
 	${CC} ${CFLAGS} ${OBJS} -o $@
 
 clean:
