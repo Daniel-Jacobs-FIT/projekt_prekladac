@@ -127,7 +127,6 @@ token_t get_token() {
 
     while(current_token.variant == none) {
         input_char = getc(stdin);
-        if(input_char == '\n') ++line_counter; 
         fsm_step(input_char, &current_token);
     }
 
