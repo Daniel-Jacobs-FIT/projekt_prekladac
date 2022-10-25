@@ -3,6 +3,67 @@
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
+/* Funkce pro logiku fsm */
+
+scanner_state_t default_logic(char input, token_t *token)
+{
+	char cmp = input;
+	ungetc((int)input, stdin);
+	switch(cmp)
+	{
+		case '/':
+			return div_oper_s;
+		case '+':
+		case '-':
+		case '*':
+			return num_oper_s;
+		case '.':
+			return oper_conc_s;
+		case '!':
+			return not_eq1_s;
+		case '=':
+			return eq_or_assign_s;
+		case '>':
+			return grt_s;
+		case '<':
+			return less_s;
+		case '(':
+			return open_rnd_s;
+		case ')':
+			return cls_rnd_s;
+		case '{':
+			return open_curl_s;
+		case ';':
+			return semicol_s;
+		case '}':
+			return cls_curl_s;
+		case '"':
+			return string_lit_s;
+		case '_' :
+		case '$' :
+			return identif_s;
+		case '?':
+			return id_or_end_s;
+		case 10: //eol
+		case 9: //tab
+		case ' ':
+			return default_s;
+		default:
+			if((cmp >= 'A' && cmp <= 'Z') || (cmp >= 'a' && cmp <= 'z'))
+			{	
+				return identif_s;
+			}
+			else if(cmp >= '0' && cmp <= '9')
+			{
+				return integ_s;
+			}else
+			{
+				token->variant = err_var;
+				return default_s;
+			}	
+	}
+}
+
 /* Funkce pro overeni, ze standartni vstup na zacatku obsahuje znaky SIGN
  * sign = znacka ke kontrole 
  * */
@@ -30,7 +91,8 @@ scanner_state_t fsm_step(char input, token_t *token) {
 
     switch(fsm_state) {
         case default_s :
-            break;
+			fsm_state = default_logic(input, token);
+			break;
         case div_oper_s :
             break;
         case com_oneline_s : 
@@ -90,6 +152,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
         case oct2_s :
             break;
         case integ_s :
+			//fsm_state = integ_logic(input, token);
             break;
         case float_dot_s :
             break;
