@@ -1,2 +1,4 @@
 *.pdf
 git*
+*.o
+ifj22compiler

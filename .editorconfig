@@ -1,0 +1,10 @@
+# prestane hleda editorconfig kdyz ho tady najde
+root = true
+
+# all files
+[*]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+end_of_line = lf
+charset = utf-8
