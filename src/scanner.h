@@ -19,7 +19,7 @@ typedef enum {default_s, div_oper_s, com_oneline_s,\
                 integ_s, float_dot_s, float_dot_num_s,\
                 float_e_s, float_e_sign_s, float_e_num,\
                 id_or_end_s, identif_s, end_sign_s, end_prg_s\
-    } scanner_state;
+    } scanner_state_t;
 
 /* Enum pro urceni varianty tokenu (je to operator '/' nebo identifikator nebo ...)
  * */
@@ -29,7 +29,7 @@ typedef enum {none, div_oper, num_oper_var, oper_conc_var,\
                 open_rnd_var, cls_rnd_var, open_curl_var,\
                 cls_curl_var, semicol_var, string_lit_end_var,\
                 integ_var, float_dot_num_var, float_e_num_var,\
-                indenif_var, end_prg_var\
+                indenif_var, end_prg_var, err_var\
 } token_var; //TODO - mozne zjednoduseni, scanneru je lhostejna varianta reprezentace floatu, ...
 /* Makro pro print_token, mapovani enumu na jejich jmena pro lepsi citelnost pri debuggovani
  * */
@@ -40,7 +40,7 @@ typedef enum {none, div_oper, num_oper_var, oper_conc_var,\
     "open_rnd_var", "cls_rnd_var", "open_curl_var", \
     "cls_curl_var", "semicol_var", "string_lit_end_var", \
     "integ_var", "float_dot_num_var", "float_e_num_var", \
-    "indenif_var", "end_prg_var"
+    "indenif_var", "end_prg_var", "err_var"
 
 /* Struktura predstavujici token
  * content = obsah tokenu (nactene symboly)
@@ -53,9 +53,9 @@ typedef struct token_struct{
     int line_num;
 } token_t;
 
-bool sign_check(char *sign);
+bool string_check(char *sign);
 
-void fsm_step(char input, token_t *token);
+scanner_state_t fsm_step(char input, token_t *token);
 
 token_t create_token(char* content, token_var variant, int line_num);
 

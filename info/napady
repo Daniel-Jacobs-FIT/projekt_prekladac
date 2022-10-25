@@ -1,7 +1,9 @@
 NUTNE UDELAT:
-    - kostra automatu (jeden veliky switch a pomoci enumu stavu)
-    - infrastruktura pro tokeny: -> struct, debug-print, free HOTOVO
-    - logiky stavu v automatu (testovat - neocekavany EOF, ...)
+    - logiky stavu v automatu (testovat - neocekavany EOF, error stav, ...)
+    - pri nacteni znaku, pro ktery neni prechod je nutne jej opet vratit na stdin - ungetc()
+    - errory - fsm_step vypise druh chyby, get_token vypise cislo radku a *nejak* upozorni scanner
     - funkci zpracovavajici cely prolog - "<?php" + declare (nutny automat pro odstraneni
-        bilych znaku a komentaru mezi tema dvema vecma)
-    
+        bilych znaku a komentaru mezi tema dvema vecma)    
+        -> vyuzit string check a pres automat odstranit bile znaky mezi nimi
+
+- pri zmene logiky stavu atd. nutne zmenit diagram v drawiu

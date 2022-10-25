@@ -3,10 +3,10 @@
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
-/* Funkce pro overeni, ze standartniho vstupu na zacatku obsahuje znaky SIGN
+/* Funkce pro overeni, ze standartni vstup na zacatku obsahuje znaky SIGN
  * sign = znacka ke kontrole 
  * */
-bool sign_check(char *sign) {
+bool string_check(char *sign) {
     int sign_len = strlen(sign);
     ++sign_len; //inkrementace, aby se terminalni znak \0 vesel do bufferu
 
@@ -25,8 +25,8 @@ bool sign_check(char *sign) {
  * input = znak nacteny ze vstupu
  * token = token, do ktereho se ma zapsat lexem
  * */
-void fsm_step(char input, token_t *token) {
-    static scanner_state fsm_state = default_s;
+scanner_state_t fsm_step(char input, token_t *token) {
+    static scanner_state_t fsm_state = default_s;
 
     switch(fsm_state) {
         case default_s :
@@ -111,6 +111,7 @@ void fsm_step(char input, token_t *token) {
             break;
         //TODO lze zjednodusit -> sloucit stavy, obsluha EOF, obsluha chyby, ...
     }  
+    return fsm_state;
 }
 
 /* Funkce pro parser, na pozadani cte vstup, dokud neprecte dost informaci
