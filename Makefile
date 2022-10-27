@@ -16,8 +16,16 @@ all: ${PROJECT-NAME}
 ${PROJECT-NAME}: ${REL-OBJS}
 	${CC} ${CFLAGS} ${REL-OBJS} -o $@
 
+run: ${PROJECT-NAME}
+	./${PROJECT-NAME}
+
+tests: ${S_TEST_NAME}
+
 ${S_TEST_NAME}: ${LIB-OBJS} ${TEST-OBJ}
 	${CC} ${CFLAGS} ${TEST-OBJ} ${LIB-OBJS} -o $@
+
+run-tests: ${S_TEST_NAME}
+	src/test-skript.sh
 
 clean:
 	rm -f ${ALL-OBJS} ${PROJECT-NAME} ${S_TEST_NAME} 
