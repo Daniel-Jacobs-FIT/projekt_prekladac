@@ -182,7 +182,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
  * */
 token_t get_token() {
     char input_char = getc(stdin);
-    static int line_counter = 0;
+    static int line_counter = 1;
 
     if(input_char == '\n') ++line_counter; 
 
