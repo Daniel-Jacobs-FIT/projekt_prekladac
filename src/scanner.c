@@ -3,7 +3,30 @@
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
+/*
+funkce na vypisovani error message pri ziskani neplatneho charu
+	param: err_char -> character ktery zpusobyl chybu
+	param: line_num -> cislo radku na kterem byla chyba zpusobena
+*/
+void state_err(char err_char, int line_num)
+{
+	if(err_char == EOF)
+	{
+		printf("Error: unexpected EOF at line %d\n", line_num);
+	}
+	else
+	{
+		printf("Error: unexpected char '%c' at line %d\n", err_char, line_num);
+	}
+}
+
 /* Funkce pro logiku fsm */
+scanner_state_t end_prg_logic(token_t *token)
+{
+	token->variant = end_prg_var;
+	return default_s;
+}
+
 scanner_state_t end_sign_logic(char input, token_t *token)
 {
 	int content_lenght = 0;
@@ -28,6 +51,7 @@ scanner_state_t end_sign_logic(char input, token_t *token)
 		default:
 			//error case
 			token->variant = err_var;
+			state_err(input, token->line_num);
 			return default_s;
 			
 	}
@@ -69,6 +93,7 @@ scanner_state_t id_or_end_logic(char input, token_t *token)
 			{
 				//error case
 				token->variant = err_var;
+				state_err(input, token->line_num);
 				return default_s;
 			}
 	}
@@ -185,7 +210,9 @@ scanner_state_t default_logic(char input, token_t *token)
 				return integ_s;
 			}else
 			{
+				//error case
 				token->variant = err_var;
+				state_err(cmp, token->line_num);
 				return default_s;
 			}	
 	}
@@ -300,6 +327,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
 			fsm_state = end_sign_logic(input, token);
             break;
         case end_prg_s :
+			fsm_state = end_prg_logic(token);
             break;
         //TODO lze zjednodusit -> sloucit stavy, obsluha EOF, obsluha chyby, ...
     }  
