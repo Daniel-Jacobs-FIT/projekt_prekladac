@@ -169,6 +169,8 @@ scanner_state_t default_logic(char input, token_t *token)
 			return identif_s;
 		case '?':
 			return id_or_end_s;
+		case EOF:
+			return end_prg_s;
 		case 10: //eol
 		case 9: //tab
 		case ' ':
