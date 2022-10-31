@@ -4,6 +4,54 @@ const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
 /* Funkce pro logiku fsm */
+scanner_state_t integ_logic(char input, token_t *token)
+{
+	//faster than always looking at strlen()
+	static int next_index = 0;
+	
+	if(token->content == NULL)
+	{
+		//malloc(1) protoze sizeof(char) je 1
+		char *content = (char *)malloc(1);
+		if(content == NULL)
+		{
+			//malloc fail;
+			fprintf(stderr, "failed to initialize memory with malloc");
+			return -1;
+		}
+		// start arr: [\0]
+		content[0] = '\0';
+		token->content = content;
+	}
+	switch(input)
+	{
+		case '.':
+			return float_dot_s;
+		case 'E':
+		case 'e':
+			return float_e_s;
+		default:
+			if(input >= '0' && input <= '9')
+			{
+				//next_index+2 protoze indexujeme od 0
+				token->content = (char *)realloc((void *)token->content, next_index+2);
+				token->content[next_index] = input;
+
+				//next_index+1 vzdy ukazuje na posledni misto ve stringu	
+				token->content[next_index+1] = '\0';
+				return integ_s;
+			}
+			else
+			{
+				token->variant = integ_var;
+				ungetc(input, stdin);
+				
+				next_index = 0;
+				return default_s;
+			}
+	}
+}
+
 
 scanner_state_t default_logic(char input, token_t *token)
 {
@@ -152,7 +200,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
         case oct2_s :
             break;
         case integ_s :
-			//fsm_state = integ_logic(input, token);
+			fsm_state = integ_logic(input, token);
             break;
         case float_dot_s :
             break;
