@@ -6,6 +6,7 @@ int main(int argc, char* argv[]) {
 
     while(current_token.variant != end_prg_var) {
         print_token(&current_token);
+		current_token = get_token();
     }
 
     print_token(&current_token);
