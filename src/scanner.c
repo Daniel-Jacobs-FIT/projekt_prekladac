@@ -4,6 +4,35 @@ const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
 /* Funkce pro logiku fsm */
+scanner_state_t end_sign_logic(char input, token_t *token)
+{
+	int content_lenght = 0;
+	switch(input)
+	{
+		case '>':
+			//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary
+			content_lenght = strlen(token->content);
+			char *new_content =(char *)realloc((void *)token->content, content_lenght+2); 
+			if(new_content == NULL)
+			{
+				fprintf(stderr, "failed to allocate memory with realloc\n");
+				return -1;
+			}
+			token->content = new_content;
+			token->content[content_lenght+1] = input;
+			token->content[content_lenght+2] = '\0';
+			return end_sign_s;
+		case EOF:
+			ungetc((int)input, stdin);
+			return end_prg_s;
+		default:
+			//error case
+			token->variant = err_var;
+			return default_s;
+			
+	}
+}
+
 scanner_state_t id_or_end_logic(char input, token_t *token)
 {
 	//can be id (starts with aA-zZ or '_'), variable (	
@@ -75,7 +104,14 @@ scanner_state_t integ_logic(char input, token_t *token)
 			if(input >= '0' && input <= '9')
 			{
 				//next_index+2 protoze indexujeme od 0
-				token->content = (char *)realloc((void *)token->content, next_index+2);
+				char *new_content =(char *)realloc((void *)token->content, next_index+2); 
+				if(new_content == NULL)
+				{
+					fprintf(stderr, "failed to allocate memory with realloc\n");
+					return -1;
+				}
+				token->content = new_content;
+				
 				token->content[next_index] = input;
 
 				//next_index+1 vzdy ukazuje na posledni misto ve stringu	
@@ -259,6 +295,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
         case identif_s :
             break;
         case end_sign_s :
+			fsm_state = end_sign_logic(input, token);
             break;
         case end_prg_s :
             break;
