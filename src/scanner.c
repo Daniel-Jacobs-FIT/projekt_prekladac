@@ -4,6 +4,47 @@ const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
 /* Funkce pro logiku fsm */
+scanner_state_t id_or_end_logic(char input, token_t *token)
+{
+	//can be id (starts with aA-zZ or '_'), variable (	
+	if(token->content == NULL)
+	{
+		//malloc(2) protoze sizeof(char) + '?'	
+		char *content = (char *)malloc(2);
+		if(content == NULL)
+		{
+			//malloc fail;
+			fprintf(stderr, "failed to initialize memory with malloc\n");
+			return -1;
+		}
+		content[1] = '\0';
+		content[0] = input;
+		token->content = content;
+		return id_or_end_s;
+	}
+	switch(input)
+	{
+		case '>':
+			return end_sign_s;
+			break;
+		case '_':
+			return identif_s;
+			break;
+		default:
+			if((input >= 'A' && input <= 'Z')  || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9'))
+			{
+				ungetc((int)input, stdin);
+				return identif_s;
+			}
+			else
+			{
+				//error case
+				token->variant = err_var;
+				return default_s;
+			}
+	}
+}
+
 scanner_state_t integ_logic(char input, token_t *token)
 {
 	//faster than always looking at strlen()
@@ -16,7 +57,7 @@ scanner_state_t integ_logic(char input, token_t *token)
 		if(content == NULL)
 		{
 			//malloc fail;
-			fprintf(stderr, "failed to initialize memory with malloc");
+			fprintf(stderr, "failed to initialize memory with malloc\n");
 			return -1;
 		}
 		// start arr: [\0]
@@ -44,7 +85,7 @@ scanner_state_t integ_logic(char input, token_t *token)
 			else
 			{
 				token->variant = integ_var;
-				ungetc(input, stdin);
+				ungetc((int)input, stdin);
 				
 				next_index = 0;
 				return default_s;
@@ -213,6 +254,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
         case float_e_num :
             break;
         case id_or_end_s :
+			fsm_state = id_or_end_logic(input, token);
             break;
         case identif_s :
             break;
