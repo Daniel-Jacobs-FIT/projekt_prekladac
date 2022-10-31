@@ -78,11 +78,11 @@ scanner_state_t id_or_end_logic(char input, token_t *token)
 	switch(input)
 	{
 		case '>':
+			ungetc((int)input, stdin);
 			return end_sign_s;
-			break;
 		case '_':
+			ungetc((int)input, stdin);
 			return identif_s;
-			break;
 		default:
 			if((input >= 'A' && input <= 'Z')  || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9'))
 			{
@@ -121,9 +121,11 @@ scanner_state_t integ_logic(char input, token_t *token)
 	switch(input)
 	{
 		case '.':
+			ungetc((int)input, stdin);
 			return float_dot_s;
 		case 'E':
 		case 'e':
+			ungetc((int)input, stdin);
 			return float_e_s;
 		default:
 			if(input >= '0' && input <= '9')
@@ -344,7 +346,7 @@ token_t get_token() {
     if(input_char == '\n') ++line_counter; 
 
     token_t current_token = create_token(NULL, none, 0);
-
+	ungetc((int)input_char, stdin);
     while(current_token.variant == none) {
         input_char = getc(stdin);
         fsm_step(input_char, &current_token);
@@ -377,8 +379,10 @@ void print_token(token_t *token) {
     if(token->content == NULL)
 	{
 		printf("Token:\"\" Variant:%s Line:%d\n", TOKEN_VAR_NAMES[token->variant], token->line_num); 
+	}else
+	{
+		printf("Token:\"%s\" Variant:%s Line:%d\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num); 
 	}
-	printf("Token:\"%s\" Variant:%s Line:%d\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num); 
 }
 
 /* Funkce pro uvolneni pameti na heapu zabirane tokenem
