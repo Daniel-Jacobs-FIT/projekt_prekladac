@@ -374,7 +374,11 @@ token_t create_token(char* content, token_var variant, int line_num) {
  * token = ukazatel na token, ktery se ma vypsat
  * */
 void print_token(token_t *token) {
-    printf("Token:\"%s\" Variant:%s Line:%d\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num); 
+    if(token->content == NULL)
+	{
+		printf("Token:\"\" Variant:%s Line:%d\n", TOKEN_VAR_NAMES[token->variant], token->line_num); 
+	}
+	printf("Token:\"%s\" Variant:%s Line:%d\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num); 
 }
 
 /* Funkce pro uvolneni pameti na heapu zabirane tokenem
