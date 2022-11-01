@@ -1,7 +1,12 @@
 #include "scanner.h"
+#include "string.c" //docasne pro vyvoj string.c
+#include "math.h"
 
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
+static char buffer[5];
+static int decimal = 0;
+static int string_buffer_count = 0;
 
 /* Funkce pro overeni, ze standartni vstup na zacatku obsahuje znaky SIGN
  * sign = znacka ke kontrole 
@@ -21,6 +26,44 @@ bool string_check(char *sign) {
     }
 }
 
+void string_buffer(token_t token, char *input) {
+
+    //string_buffer_count = (string_buffer_count + 1) % 5;
+    buffer[string_buffer_count % 5] = *input;
+    if((string_buffer_count % 5) == 4) {
+        if(realloc(token.content, sizeof(char) * 5) == NULL)
+        ;
+
+        for(int i = 0; i < 5; i++) {
+            printf("%d, %s\n", i, input);
+            token.content[string_buffer_count - 4 + i] = buffer[i];
+        }
+    }
+    
+    string_buffer_count++;
+
+}
+
+int to_decimal(char input, int type, int position) {
+    int base;
+
+    if(type == 16)
+        base = 16;
+    if(type == 8)
+        base = 8;
+
+    if(input >= '0' && input <= '9') {
+        decimal += (input - 48) * pow(base, position);
+    }
+    else if(input >= 'A' && input <= 'F') {
+        decimal += (input - 55) * pow(base, position);
+    }
+    else if(input >= 'a' && input <= 'f') {
+        decimal += (input - 87) * pow(base, position);
+    }
+    return decimal;
+}
+
 /* Funkce implementujici automat ridici lexikalni analyzu
  * input = znak nacteny ze vstupu
  * token = token, do ktereho se ma zapsat lexem
@@ -30,6 +73,10 @@ scanner_state_t fsm_step(char input, token_t *token) {
 
     switch(fsm_state) {
         case default_s :
+            if(input == '"'){
+                fsm_state = string_lit_s;
+                printf("scan lit start\n");
+            }
             break;
         case div_oper_s :
             break;
@@ -74,21 +121,123 @@ scanner_state_t fsm_step(char input, token_t *token) {
         case semicol_s :
             break;
         case string_lit_end_s :
+            token->variant = string_lit_end_var;
+            token->content = &input;
             break;
         case string_lit_s :
+            if(input == '"') {
+                fsm_state = string_lit_end_s;
+                printf("scan lit end\n");
+                break;
+            }
+            else if(input == '\\'){
+                fsm_state = esc_char_s;
+                printf("esc char state\n");
+            }
+            else {
+                string_buffer(*token, &input);
+            }
             break;
+            
         case esc_char_s :
-            break;
+            if(strchr("nrtve\\$", input) != NULL){ //escape sequence
+                fsm_state = esc_seq_s;
+                printf("esc_seq\n");
+                break;
+            }
+            else if(strchr("x", input) != NULL) { //hex sequence
+                fsm_state = hex1_s;
+                decimal = 0;
+                printf("hex1_s\n");
+                break;
+            }
+            else if(strchr("0123", input) != NULL){ //octal sequence
+                fsm_state = oct1_s;
+                decimal = 0;
+                to_decimal(input, 8, 2);
+                printf("oct_start\n");
+                break;
+            }
+            else {
+                fsm_state = string_lit_s;
+                printf("string_lit_s\n");
+                break;
+            }
         case esc_seq_s :
-            break;
+            if(input == '"') {
+                fsm_state = string_lit_end_s;
+                printf("scan lit end\n");
+                break;
+            }
+            else {
+                fsm_state = string_lit_s;
+                printf("string_lit\n");
+                break;
+            }
         case hex1_s :
-            break;
+            if(input == '"') {
+                fsm_state = string_lit_end_s;
+                printf("scan lit end\n");
+                break;
+            }
+            else if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
+                to_decimal(input, 16, 1);
+                fsm_state = hex2_s;
+                printf("hex2_s\n");
+                break;
+            }
+            else {
+                fsm_state = string_lit_s;
+                printf("string_lit\n");
+                break;
+            }
         case hex2_s :
-            break;
+             if(input == '"') {
+                fsm_state = string_lit_end_s;
+                printf("scan lit end\n");
+                break;
+            }
+            else if (strchr("123456789aAbBcCdDeEfF", input) != NULL) {
+                fsm_state = string_lit_s;
+                printf("%d\n", to_decimal(input, 16, 0));
+                printf("string_lit\n");
+                break;
+            }
+            else {
+                fsm_state = string_lit_s;
+                printf("string_lit\n");
+                break;
+            }
         case oct1_s :
-            break;
+            if(input == '"') {
+                fsm_state = string_lit_end_s;
+                printf("scan lit end\n");
+                break;
+            }
+            else if (strchr("01234567", input) != NULL) {
+                to_decimal(input, 8, 1);
+                fsm_state = oct2_s;
+                break;
+            }
+            else {
+                fsm_state = string_lit_s;
+                break;
+            }
         case oct2_s :
-            break;
+            if(input == '"') {
+                fsm_state = string_lit_end_s;
+                printf("scan lit end\n");
+                break;
+            }
+            else if (strchr("01234567", input) != NULL) {
+                printf("%d\n", to_decimal(input, 8, 0));
+                fsm_state = string_lit_s;
+                break;
+            }
+            else {
+                fsm_state = string_lit_s;
+                break;
+            }
         case integ_s :
             break;
         case float_dot_s :
