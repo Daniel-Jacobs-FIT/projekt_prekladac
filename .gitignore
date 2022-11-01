@@ -1,2 +1,5 @@
 *.pdf
 git*
+*.o
+ifj22compiler
+scanner-test

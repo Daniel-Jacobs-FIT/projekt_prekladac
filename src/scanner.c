@@ -8,6 +8,254 @@ static char buffer[5];
 static int decimal = 0;
 static int string_buffer_count = 0;
 
+/*
+funkce na vypisovani error message pri ziskani neplatneho charu
+	param: err_char -> character ktery zpusobil chybu
+	param: line_num -> cislo radku na kterem byla chyba zpusobena
+*/
+void state_err(int err_char, int line_num)
+{
+	if(err_char == EOF)
+	{
+		printf("Error: unexpected EOF at line %d\n", line_num);
+	}
+	else
+	{	
+		printf("Error: unexpected char '%c' at line %d\n", err_char, line_num);
+	}
+}
+
+/* Funkce pro logiku fsm */
+//TODO vymazat ukladani end_prg_var tokenu
+scanner_state_t expect_eof_logic(int input, token_t *token)
+{
+	int content_lenght = 0;
+	switch(input)
+	{
+		case 10: //eol
+			//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary
+			content_lenght = strlen(token->content);
+			char *new_content =(char *)realloc((void *)token->content, content_lenght+2); 
+			if(new_content == NULL)
+			{
+				fprintf(stderr, "failed to allocate memory with realloc\n");
+				return -1;
+			}
+			token->content = new_content;
+			token->content[content_lenght] = (char)input;
+			token->content[content_lenght+1] = '\0';
+			return end_sign_s;
+		case EOF:
+			ungetc(input, stdin);
+			return end_prg_s;
+		default:
+			//error case
+			token->variant = err_var;
+			state_err(input, token->line_num);
+			return default_s;
+	}
+}
+
+scanner_state_t end_prg_logic(token_t *token)
+{
+	token->variant = end_prg_var;
+	return default_s;
+}
+
+scanner_state_t end_sign_logic(int input, token_t *token)
+{
+	int content_lenght = 0;
+	switch(input)
+	{
+		case '>':
+			//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary
+			content_lenght = strlen(token->content);
+			char *new_content =(char *)realloc((void *)token->content, content_lenght+2); 
+			if(new_content == NULL)
+			{
+				fprintf(stderr, "failed to allocate memory with realloc\n");
+				return -1;
+			}
+			token->content = new_content;
+			token->content[content_lenght] = (char)input;
+			token->content[content_lenght+1] = '\0';
+			return end_sign_s;
+		case EOF:
+			ungetc(input, stdin);
+			return end_prg_s;
+		case 10: //eol
+			ungetc(input, stdin);
+			return expect_eof_s;
+		default:
+			//error case
+			token->variant = err_var;
+			state_err(input, token->line_num);
+			return default_s;
+			
+	}
+}
+
+scanner_state_t id_or_end_logic(int input, token_t *token)
+{
+	if(token->content == NULL)
+	{
+		//malloc(2) protoze sizeof(char) + '?'	
+		char *content = (char *)malloc(2);
+		if(content == NULL)
+		{
+			//malloc fail
+			fprintf(stderr, "failed to initialize memory with malloc\n");
+			return -1;
+		}
+		content[1] = '\0';
+		content[0] = (char)input;
+		token->content = content;
+		return id_or_end_s;
+	}
+	switch(input)
+	{
+		case '>':
+			ungetc(input, stdin);
+			return end_sign_s;
+		case '_':
+			ungetc(input, stdin);
+			return identif_s;
+		default:
+			if((input >= 'A' && input <= 'Z')  || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9'))
+			{
+				ungetc(input, stdin);
+				return identif_s;
+			}
+			else
+			{
+				//error case
+				token->variant = err_var;
+				state_err(input, token->line_num);
+				return default_s;
+			}
+	}
+}
+
+scanner_state_t integ_logic(int input, token_t *token)
+{
+	static int next_index = 0;
+	
+	if(token->content == NULL)
+	{
+		//malloc(1) protoze sizeof(char) je 1
+		char *content = (char *)malloc(1);
+		if(content == NULL)
+		{
+			//malloc fail;
+			fprintf(stderr, "failed to initialize memory with malloc\n");
+			return -1;
+		}
+		content[0] = '\0';
+		token->content = content;
+	}
+	switch(input)
+	{
+		case '.':
+			ungetc(input, stdin);
+			return float_dot_s;
+		case 'E':
+		case 'e':
+			ungetc(input, stdin);
+			return float_e_s;
+		default:
+			if(input >= '0' && input <= '9')
+			{
+				//next_index+2 protoze indexujeme od 0
+				char *new_content =(char *)realloc((void *)token->content, next_index+2); 
+				if(new_content == NULL)
+				{
+					fprintf(stderr, "failed to allocate memory with realloc\n");
+					return -1;
+				}
+				token->content = new_content;
+				
+				token->content[next_index] = (char)input;
+
+				//next_index+1 vzdy ukazuje na posledni misto ve stringu	
+				token->content[next_index+1] = '\0';
+				return integ_s;
+			}
+			else
+			{
+				token->variant = integ_var;
+				ungetc(input, stdin);
+				
+				next_index = 0;
+				return default_s;
+			}
+	}
+}
+
+
+scanner_state_t default_logic(int input, token_t *token)
+{
+	int cmp = input;
+	ungetc(input, stdin);
+	switch(cmp)
+	{
+		case '/':
+			return div_oper_s;
+		case '+':
+		case '-':
+		case '*':
+			return num_oper_s;
+		case '.':
+			return oper_conc_s;
+		case '!':
+			return not_eq1_s;
+		case '=':
+			return eq_or_assign_s;
+		case '>':
+			return grt_s;
+		case '<':
+			return less_s;
+		case '(':
+			return open_rnd_s;
+		case ')':
+			return cls_rnd_s;
+		case '{':
+			return open_curl_s;
+		case ';':
+			return semicol_s;
+		case '}':
+			return cls_curl_s;
+		case '"':
+			return string_lit_s;
+		case '_' :
+		case '$' :
+			return identif_s;
+		case '?':
+			return id_or_end_s;
+		case EOF:
+			return end_prg_s;
+		case 10: //eol
+		case 9: //tab
+		case ' ':
+			getc(stdin);
+			return default_s;
+		default:
+			if((cmp >= 'A' && cmp <= 'Z') || (cmp >= 'a' && cmp <= 'z'))
+			{	
+				return identif_s;
+			}
+			else if(cmp >= '0' && cmp <= '9')
+			{
+				return integ_s;
+			}else
+			{
+				//error case
+				token->variant = err_var;
+				state_err(cmp, token->line_num);
+				return default_s;
+			}	
+	}
+}
+
 /* Funkce pro overeni, ze standartni vstup na zacatku obsahuje znaky SIGN
  * sign = znacka ke kontrole 
  * */
@@ -68,16 +316,13 @@ int to_decimal(char input, int type, int position) {
  * input = znak nacteny ze vstupu
  * token = token, do ktereho se ma zapsat lexem
  * */
-scanner_state_t fsm_step(char input, token_t *token) {
+scanner_state_t fsm_step(int input, token_t *token) {
     static scanner_state_t fsm_state = default_s;
 
     switch(fsm_state) {
         case default_s :
-            if(input == '"'){
-                fsm_state = string_lit_s;
-                printf("scan lit start\n");
-            }
-            break;
+			fsm_state = default_logic(input, token);
+			break;
         case div_oper_s :
             break;
         case com_oneline_s : 
@@ -239,6 +484,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
                 break;
             }
         case integ_s :
+			fsm_state = integ_logic(input, token);
             break;
         case float_dot_s :
             break;
@@ -251,12 +497,18 @@ scanner_state_t fsm_step(char input, token_t *token) {
         case float_e_num :
             break;
         case id_or_end_s :
+			fsm_state = id_or_end_logic(input, token);
             break;
         case identif_s :
             break;
         case end_sign_s :
+			fsm_state = end_sign_logic(input, token);
             break;
+		case expect_eof_s :
+			fsm_state = expect_eof_logic(input, token);
+			break;
         case end_prg_s :
+			fsm_state = end_prg_logic(token);
             break;
         //TODO lze zjednodusit -> sloucit stavy, obsluha EOF, obsluha chyby, ...
     }  
@@ -267,16 +519,15 @@ scanner_state_t fsm_step(char input, token_t *token) {
  * pro vytvoreni tokenu, ktery vraci
  * */
 token_t get_token() {
-    char input_char = getc(stdin);
-    static int line_counter = 0;
+    int input_char = getc(stdin);
+    static int line_counter = 1;
 
     if(input_char == '\n') ++line_counter; 
 
     token_t current_token = create_token(NULL, none, 0);
-
+	ungetc(input_char, stdin);
     while(current_token.variant == none) {
         input_char = getc(stdin);
-        if(input_char == '\n') ++line_counter; 
         fsm_step(input_char, &current_token);
     }
 
@@ -304,7 +555,13 @@ token_t create_token(char* content, token_var variant, int line_num) {
  * token = ukazatel na token, ktery se ma vypsat
  * */
 void print_token(token_t *token) {
-    printf("Token:\"%s\" Variant:%s Line:%d\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num); 
+    if(token->content == NULL)
+	{
+		printf("Token:\"\" Variant:%s Line:%d\n", TOKEN_VAR_NAMES[token->variant], token->line_num); 
+	}else
+	{
+		printf("Token:\"%s\" Variant:%s Line:%d\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num); 
+	}
 }
 
 /* Funkce pro uvolneni pameti na heapu zabirane tokenem
