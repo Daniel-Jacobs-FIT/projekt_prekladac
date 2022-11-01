@@ -21,6 +21,36 @@ void state_err(int err_char, int line_num)
 }
 
 /* Funkce pro logiku fsm */
+//TODO vymazat ukladani end_prg_var tokenu
+scanner_state_t expect_eof_logic(int input, token_t *token)
+{
+	int content_lenght = 0;
+	switch(input)
+	{
+		case 10: //eol
+			//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary
+			content_lenght = strlen(token->content);
+			char *new_content =(char *)realloc((void *)token->content, content_lenght+2); 
+			if(new_content == NULL)
+			{
+				fprintf(stderr, "failed to allocate memory with realloc\n");
+				return -1;
+			}
+			token->content = new_content;
+			token->content[content_lenght] = (char)input;
+			token->content[content_lenght+1] = '\0';
+			return end_sign_s;
+		case EOF:
+			ungetc(input, stdin);
+			return end_prg_s;
+		default:
+			//error case
+			token->variant = err_var;
+			state_err(input, token->line_num);
+			return default_s;
+	}
+}
+
 scanner_state_t end_prg_logic(token_t *token)
 {
 	token->variant = end_prg_var;
@@ -42,12 +72,15 @@ scanner_state_t end_sign_logic(int input, token_t *token)
 				return -1;
 			}
 			token->content = new_content;
-			token->content[content_lenght+1] = (char)input;
-			token->content[content_lenght+2] = '\0';
+			token->content[content_lenght] = (char)input;
+			token->content[content_lenght+1] = '\0';
 			return end_sign_s;
 		case EOF:
-			ungetc((int)input, stdin);
+			ungetc(input, stdin);
 			return end_prg_s;
+		case 10: //eol
+			ungetc(input, stdin);
+			return expect_eof_s;
 		default:
 			//error case
 			token->variant = err_var;
@@ -59,14 +92,13 @@ scanner_state_t end_sign_logic(int input, token_t *token)
 
 scanner_state_t id_or_end_logic(int input, token_t *token)
 {
-	//can be id (starts with aA-zZ or '_'), variable (	
 	if(token->content == NULL)
 	{
 		//malloc(2) protoze sizeof(char) + '?'	
 		char *content = (char *)malloc(2);
 		if(content == NULL)
 		{
-			//malloc fail;
+			//malloc fail
 			fprintf(stderr, "failed to initialize memory with malloc\n");
 			return -1;
 		}
@@ -78,15 +110,15 @@ scanner_state_t id_or_end_logic(int input, token_t *token)
 	switch(input)
 	{
 		case '>':
-			ungetc((int)input, stdin);
+			ungetc(input, stdin);
 			return end_sign_s;
 		case '_':
-			ungetc((int)input, stdin);
+			ungetc(input, stdin);
 			return identif_s;
 		default:
 			if((input >= 'A' && input <= 'Z')  || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9'))
 			{
-				ungetc((int)input, stdin);
+				ungetc(input, stdin);
 				return identif_s;
 			}
 			else
@@ -101,7 +133,6 @@ scanner_state_t id_or_end_logic(int input, token_t *token)
 
 scanner_state_t integ_logic(int input, token_t *token)
 {
-	//faster than always looking at strlen()
 	static int next_index = 0;
 	
 	if(token->content == NULL)
@@ -114,18 +145,17 @@ scanner_state_t integ_logic(int input, token_t *token)
 			fprintf(stderr, "failed to initialize memory with malloc\n");
 			return -1;
 		}
-		// start arr: [\0]
 		content[0] = '\0';
 		token->content = content;
 	}
 	switch(input)
 	{
 		case '.':
-			ungetc((int)input, stdin);
+			ungetc(input, stdin);
 			return float_dot_s;
 		case 'E':
 		case 'e':
-			ungetc((int)input, stdin);
+			ungetc(input, stdin);
 			return float_e_s;
 		default:
 			if(input >= '0' && input <= '9')
@@ -139,7 +169,7 @@ scanner_state_t integ_logic(int input, token_t *token)
 				}
 				token->content = new_content;
 				
-				token->content[next_index] = (char) input;
+				token->content[next_index] = (char)input;
 
 				//next_index+1 vzdy ukazuje na posledni misto ve stringu	
 				token->content[next_index+1] = '\0';
@@ -148,7 +178,7 @@ scanner_state_t integ_logic(int input, token_t *token)
 			else
 			{
 				token->variant = integ_var;
-				ungetc((int)input, stdin);
+				ungetc(input, stdin);
 				
 				next_index = 0;
 				return default_s;
@@ -159,8 +189,8 @@ scanner_state_t integ_logic(int input, token_t *token)
 
 scanner_state_t default_logic(int input, token_t *token)
 {
-	int cmp = (char)input;
-	ungetc((int)input, stdin);
+	int cmp = input;
+	ungetc(input, stdin);
 	switch(cmp)
 	{
 		case '/':
@@ -329,6 +359,9 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case end_sign_s :
 			fsm_state = end_sign_logic(input, token);
             break;
+		case expect_eof_s :
+			fsm_state = expect_eof_logic(input, token);
+			break;
         case end_prg_s :
 			fsm_state = end_prg_logic(token);
             break;
@@ -347,7 +380,7 @@ token_t get_token() {
     if(input_char == '\n') ++line_counter; 
 
     token_t current_token = create_token(NULL, none, 0);
-	ungetc((int)input_char, stdin);
+	ungetc(input_char, stdin);
     while(current_token.variant == none) {
         input_char = getc(stdin);
         fsm_step(input_char, &current_token);

@@ -18,7 +18,7 @@ typedef enum {default_s, div_oper_s, com_oneline_s,\
                 esc_seq_s, hex1_s, hex2_s, oct1_s, oct2_s,\
                 integ_s, float_dot_s, float_dot_num_s,\
                 float_e_s, float_e_sign_s, float_e_num,\
-                id_or_end_s, identif_s, end_sign_s, end_prg_s\
+                id_or_end_s, identif_s, end_sign_s, end_prg_s, expect_eof_s\
     } scanner_state_t;
 
 /* Enum pro urceni varianty tokenu (je to operator '/' nebo identifikator nebo ...)
