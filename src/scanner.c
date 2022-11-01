@@ -5,7 +5,7 @@ const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 
 /*
 funkce na vypisovani error message pri ziskani neplatneho charu
-	param: err_char -> character ktery zpusobyl chybu
+	param: err_char -> character ktery zpusobil chybu
 	param: line_num -> cislo radku na kterem byla chyba zpusobena
 */
 void state_err(char err_char, int line_num)
@@ -201,6 +201,7 @@ scanner_state_t default_logic(char input, token_t *token)
 		case 10: //eol
 		case 9: //tab
 		case ' ':
+			getc(stdin);
 			return default_s;
 		default:
 			if((cmp >= 'A' && cmp <= 'Z') || (cmp >= 'a' && cmp <= 'z'))
