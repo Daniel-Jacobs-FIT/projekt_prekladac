@@ -55,7 +55,7 @@ typedef struct token_struct{
 
 bool string_check(char *sign);
 
-scanner_state_t fsm_step(char input, token_t *token);
+scanner_state_t fsm_step(int input, token_t *token);
 
 token_t get_token();
 

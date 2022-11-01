@@ -8,14 +8,14 @@ funkce na vypisovani error message pri ziskani neplatneho charu
 	param: err_char -> character ktery zpusobil chybu
 	param: line_num -> cislo radku na kterem byla chyba zpusobena
 */
-void state_err(char err_char, int line_num)
+void state_err(int err_char, int line_num)
 {
 	if(err_char == EOF)
 	{
 		printf("Error: unexpected EOF at line %d\n", line_num);
 	}
 	else
-	{
+	{	
 		printf("Error: unexpected char '%c' at line %d\n", err_char, line_num);
 	}
 }
@@ -27,7 +27,7 @@ scanner_state_t end_prg_logic(token_t *token)
 	return default_s;
 }
 
-scanner_state_t end_sign_logic(char input, token_t *token)
+scanner_state_t end_sign_logic(int input, token_t *token)
 {
 	int content_lenght = 0;
 	switch(input)
@@ -42,7 +42,7 @@ scanner_state_t end_sign_logic(char input, token_t *token)
 				return -1;
 			}
 			token->content = new_content;
-			token->content[content_lenght+1] = input;
+			token->content[content_lenght+1] = (char)input;
 			token->content[content_lenght+2] = '\0';
 			return end_sign_s;
 		case EOF:
@@ -57,7 +57,7 @@ scanner_state_t end_sign_logic(char input, token_t *token)
 	}
 }
 
-scanner_state_t id_or_end_logic(char input, token_t *token)
+scanner_state_t id_or_end_logic(int input, token_t *token)
 {
 	//can be id (starts with aA-zZ or '_'), variable (	
 	if(token->content == NULL)
@@ -71,7 +71,7 @@ scanner_state_t id_or_end_logic(char input, token_t *token)
 			return -1;
 		}
 		content[1] = '\0';
-		content[0] = input;
+		content[0] = (char)input;
 		token->content = content;
 		return id_or_end_s;
 	}
@@ -99,7 +99,7 @@ scanner_state_t id_or_end_logic(char input, token_t *token)
 	}
 }
 
-scanner_state_t integ_logic(char input, token_t *token)
+scanner_state_t integ_logic(int input, token_t *token)
 {
 	//faster than always looking at strlen()
 	static int next_index = 0;
@@ -139,7 +139,7 @@ scanner_state_t integ_logic(char input, token_t *token)
 				}
 				token->content = new_content;
 				
-				token->content[next_index] = input;
+				token->content[next_index] = (char) input;
 
 				//next_index+1 vzdy ukazuje na posledni misto ve stringu	
 				token->content[next_index+1] = '\0';
@@ -157,9 +157,9 @@ scanner_state_t integ_logic(char input, token_t *token)
 }
 
 
-scanner_state_t default_logic(char input, token_t *token)
+scanner_state_t default_logic(int input, token_t *token)
 {
-	char cmp = input;
+	int cmp = (char)input;
 	ungetc((int)input, stdin);
 	switch(cmp)
 	{
@@ -243,7 +243,7 @@ bool string_check(char *sign) {
  * input = znak nacteny ze vstupu
  * token = token, do ktereho se ma zapsat lexem
  * */
-scanner_state_t fsm_step(char input, token_t *token) {
+scanner_state_t fsm_step(int input, token_t *token) {
     static scanner_state_t fsm_state = default_s;
 
     switch(fsm_state) {
@@ -341,7 +341,7 @@ scanner_state_t fsm_step(char input, token_t *token) {
  * pro vytvoreni tokenu, ktery vraci
  * */
 token_t get_token() {
-    char input_char = getc(stdin);
+    int input_char = getc(stdin);
     static int line_counter = 1;
 
     if(input_char == '\n') ++line_counter; 
