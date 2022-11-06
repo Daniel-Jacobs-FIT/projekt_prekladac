@@ -1,6 +1,7 @@
+//#include <string.c> //docasne pro vyvoj string.c
+#include <string.h>
+#include <math.h>
 #include "scanner.h"
-#include "string.c" //docasne pro vyvoj string.c
-#include "math.h"
 
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
@@ -273,17 +274,17 @@ bool string_check(char *sign) {
         return false;
     }
 }
-
-void string_buffer(token_t token, char *input) {
+//EDIT: zmena input z char na int, aby byl zachycen EOF
+void string_buffer(token_t token, int *input) {
 
     //string_buffer_count = (string_buffer_count + 1) % 5;
     buffer[string_buffer_count % 5] = *input;
     if((string_buffer_count % 5) == 4) {
         if(realloc(token.content, sizeof(char) * 5) == NULL)
-        ;
+		{} //EDIT: oprava gcc warningu -Wempty-body 
 
         for(int i = 0; i < 5; i++) {
-            printf("%d, %s\n", i, input);
+            printf("%d, %s\n", i, (char *)input);//EDIT: cast na (char *) aby se input vytiskl pres %s
             token.content[string_buffer_count - 4 + i] = buffer[i];
         }
     }
@@ -367,7 +368,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             break;
         case string_lit_end_s :
             token->variant = string_lit_end_var;
-            token->content = &input;
+            /* token->content = &input; *///EDIT: mel by dat malloc a ulozit do neho content input, takhle se ulozi stracena pamet
             break;
         case string_lit_s :
             if(input == '"') {
