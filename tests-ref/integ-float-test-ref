@@ -1,0 +1,5 @@
+Token:"1234.56789" Variant:float_dot_num_var Line:1
+Token:"1.0000000025" Variant:float_dot_num_var Line:2
+Token:"024841851854.15415818185" Variant:float_dot_num_var Line:3
+Token:"02121.1" Variant:float_dot_num_var Line:4
+Token:"" Variant:end_prg_var Line:5
