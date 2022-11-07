@@ -6,6 +6,9 @@
 #ifndef SCANNER_H_
 #define SCANNER_H_
 
+/**/
+const int KEYWORD_COUNT = 13;
+const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 /* Enum pro urceni stavu automatu ridiciho lexikalni analyzu
  * */
 typedef enum {default_s, div_oper_s, com_oneline_s,\
