@@ -9,24 +9,88 @@ static char buffer[5];
 static int decimal = 0;
 static int string_buffer_count = 0;
 
+#define MALLOC_CHECK(NAME)\
+if(NAME == NULL)\
+{\
+	fprintf(stderr, "failed to initialize memory with malloc\n");\
+	return -1;\
+}
+
 /*
 funkce na vypisovani error message pri ziskani neplatneho charu
 	param: err_char -> character ktery zpusobil chybu
 	param: line_num -> cislo radku na kterem byla chyba zpusobena
 */
-void state_err(int err_char, int line_num)
+void state_err(char *fce_name, int err_char, int line_num)
 {
+	printf("Error: in functions %s unexpected ", fce_name);
 	if(err_char == EOF)
 	{
-		printf("Error: unexpected EOF at line %d\n", line_num);
+		printf("EOF at line %d\n", line_num);
+	}
+	else if(err_char == 10)
+	{
+		printf("'new line' at line %d\n", line_num);
 	}
 	else
 	{	
-		printf("Error: unexpected char '%c' at line %d\n", err_char, line_num);
+		printf("char '%c' at line %d\n", err_char, line_num);
 	}
 }
 
 /* Funkce pro logiku fsm */
+scanner_state_t identif_logic(int input, token_t *token)
+{
+	if(token->content == NULL)
+	{
+		char *content = (char *)malloc(2);
+		MALLOC_CHECK(content);
+		content[0] = (char)input;
+		content[1] = '\0';
+		token->content = content;
+	}
+	else
+	{
+		int str_size = strlen(token->content);
+		//strlen vrati velikost bez '\0' tak musime ji pridat + velikost 1 charu
+		char *content = (char *)realloc((void *)token->content, str_size+2);
+		MALLOC_CHECK(content);
+		content[str_size] = (char)input;
+		content[str_size+1] = '\0';
+		token->content = content;
+	}
+	input = getc(stdin);
+	if((input >= 'A' && input <= 'Z')  || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') || input == '_')
+	{
+		ungetc(input, stdin);
+		return identif_s;
+	}
+	else
+	{
+		if(token->content[0] != '$')
+		{
+			bool is_keyword = false;
+			for(int i = 0; i < KEYWORD_COUNT; i++)
+			{
+				if(strcmp(token->content, keywords[i]) == 0)
+				{
+					is_keyword = true;
+					break;
+				}
+			}
+			if(is_keyword == false)
+			{
+				token->variant = err_var;
+				state_err("identif_logic", input, token->line_num);
+				return default_s;
+			}
+		}
+		token->variant = identif_var;
+		ungetc(input, stdin);
+		return default_s;
+	}
+}
+
 scanner_state_t expect_eof_logic(token_t *token)
 {
 	int input = getc(stdin);
@@ -50,7 +114,7 @@ scanner_state_t expect_eof_logic(token_t *token)
 		default:
 			//error case
 			token->variant = err_var;
-			state_err(input, token->line_num);
+			state_err("expect_eof_logic", input, token->line_num);
 			return default_s;
 	}
 }
@@ -86,34 +150,30 @@ scanner_state_t end_sign_logic(token_t *token)
 		default:
 			//error case
 			token->variant = err_var;
-			state_err(input, token->line_num);
+			state_err("end_sight_logic", input, token->line_num);
 			return default_s;
 			
 	}
 }
 
-scanner_state_t id_or_end_logic(token_t *token)
+scanner_state_t id_or_end_logic(int input, token_t *token)
 {
-	/* if(token->content == NULL) */
-	/* { */
-	/* 	//malloc(2) protoze sizeof(char) + '?' */	
-	/* 	char *content = (char *)malloc(2); */
-	/* 	if(content == NULL) */
-	/* 	{ */
-	/* 		//malloc fail */
-	/* 		fprintf(stderr, "failed to initialize memory with malloc\n"); */
-	/* 		return -1; */
-	/* 	} */
-	/* 	content[1] = '\0'; */
-	/* 	content[0] = (char)input; */
-	/* 	token->content = content; */
-	/* 	return id_or_end_s; */
-	/* } */
-	int input = getc(stdin);
+	if(token->content == NULL)
+	{
+		char *content = (char *)malloc(2);
+		MALLOC_CHECK(content);
+		content[0] = (char)input;
+		content[1] = '\0';
+		token->content = content;
+	}
+
+	input = getc(stdin);
 	switch(input)
 	{
 		case '>':
 			ungetc(input, stdin);
+			free(token->content);
+			token->content = NULL;
 			return end_sign_s;
 		case '_':
 			ungetc(input, stdin);
@@ -128,7 +188,7 @@ scanner_state_t id_or_end_logic(token_t *token)
 			{
 				//error case
 				token->variant = err_var;
-				state_err(input, token->line_num);
+				state_err("id_or_end_logic", input, token->line_num);
 				return default_s;
 			}
 	}
@@ -142,12 +202,7 @@ scanner_state_t integ_logic(int input, token_t *token)
 	{
 		//malloc(1) protoze sizeof(char) je 1
 		char *content = (char *)malloc(1);
-		if(content == NULL)
-		{
-			//malloc fail;
-			fprintf(stderr, "failed to initialize memory with malloc\n");
-			return -1;
-		}
+		MALLOC_CHECK(content);
 		content[0] = '\0';
 		token->content = content;
 	}
@@ -165,11 +220,7 @@ scanner_state_t integ_logic(int input, token_t *token)
 			{
 				//next_index+2 protoze indexujeme od 0
 				char *new_content =(char *)realloc((void *)token->content, next_index+2); 
-				if(new_content == NULL)
-				{
-					fprintf(stderr, "failed to allocate memory with realloc\n");
-					return -1;
-				}
+				MALLOC_CHECK(new_content)
 				token->content = new_content;
 				
 				token->content[next_index] = (char)input;
@@ -232,6 +283,7 @@ scanner_state_t default_logic(int input, token_t *token)
 		case EOF:
 			return end_prg_s;
 		case 10: //eol
+			token->line_num++;
 		case 9: //tab
 		case ' ':
 			getc(stdin);
@@ -248,7 +300,7 @@ scanner_state_t default_logic(int input, token_t *token)
 			{
 				//error case
 				token->variant = err_var;
-				state_err(cmp, token->line_num);
+				state_err("default_logic", cmp, token->line_num);
 				return default_s;
 			}	
 	}
@@ -495,9 +547,10 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case float_e_num :
             break;
         case id_or_end_s :
-			fsm_state = id_or_end_logic(token);
+			fsm_state = id_or_end_logic(input, token);
             break;
         case identif_s :
+			fsm_state = identif_logic(input, token);
             break;
         case end_sign_s :
 			fsm_state = end_sign_logic(token);
