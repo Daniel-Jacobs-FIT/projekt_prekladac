@@ -12,12 +12,34 @@ static int string_buffer_count = 0;
 #define MALLOC_CHECK(NAME)\
 if(NAME == NULL)\
 {\
-	fprintf(stderr, "failed to initialize memory with malloc\n");\
-	return -1;\
+	fprintf(stderr, "failed to allocate memory\n");\
+	return 1;\
+}
+int inf_char_input(int input, token_t *token)
+{
+	if(token->content == NULL)
+	{
+		char *content = (char *)malloc(2);
+		MALLOC_CHECK(content);
+		content[0] = (char)input;
+		content[1] = '\0';
+		token->content = content;
+	}
+	else
+	{
+		int str_size = strlen(token->content);
+		char *content = (char *)realloc((void *)token->content, str_size+2);
+		MALLOC_CHECK(content);
+		content[str_size] = (char)input;
+		content[str_size+1] = '\0';
+		token->content = content;
+	}
+	return 0;
 }
 
 /*
 funkce na vypisovani error message pri ziskani neplatneho charu
+	param: fce_name -> jmeno funkce ve ktere byl char precten
 	param: err_char -> character ktery zpusobil chybu
 	param: line_num -> cislo radku na kterem byla chyba zpusobena
 */
@@ -39,26 +61,96 @@ void state_err(char *fce_name, int err_char, int line_num)
 }
 
 /* Funkce pro logiku fsm */
+scanner_state_t float_dot_num_logic(int input, token_t *token)
+{
+	if(inf_char_input(input, token) != 0)
+	{
+		//memory allocation failed
+		return -1;
+	}
+	input = getc(stdin);
+	switch(input)
+	{
+		case 'E':
+		case 'e':
+			ungetc(input, stdin);
+			return float_e_s;
+		default:
+			if(input >= '0' && input <= '9')
+			{
+				ungetc(input, stdin);
+				return float_dot_num_s;
+			}else
+			{
+				token->variant = float_dot_num_var;	
+				ungetc(input, stdin);
+				return default_s;
+			}
+	}
+}
+scanner_state_t float_dot_logic(int input, token_t *token)
+{
+	if(inf_char_input(input, token) != 0)
+	{
+		//memory allocation failed
+		return -1;
+	}
+	
+	input = getc(stdin);
+	if(input >= '0' && input <= '9')
+	{
+		ungetc(input, stdin);
+		return float_dot_num_s;
+	}else
+	{
+		//error case
+		token->variant = err_var;
+		state_err("float_dot_logic", input, token->line_num);
+		return default_s;
+	}
+}
+
+scanner_state_t integ_logic(int input, token_t *token)
+{
+	if(inf_char_input(input, token) != 0)
+	{
+		//memory allocation failed
+		return -1;
+	}
+
+	input = getc(stdin);
+	switch(input)
+	{
+		case '.':
+			ungetc(input, stdin);
+			return float_dot_s;
+		case 'e':
+		case 'E':
+			ungetc(input, stdin);
+			return float_e_s;
+		default:
+			if(input >= '0' && input <= '9')
+			{
+				ungetc(input, stdin);
+				return integ_s;
+			}else
+			{
+				token->variant = integ_var;	
+				ungetc(input, stdin);
+				return default_s;
+			}
+	}
+}
+
+
 scanner_state_t identif_logic(int input, token_t *token)
 {
-	if(token->content == NULL)
+	if(inf_char_input(input, token) != 0)
 	{
-		char *content = (char *)malloc(2);
-		MALLOC_CHECK(content);
-		content[0] = (char)input;
-		content[1] = '\0';
-		token->content = content;
+		//memory allocation failed
+		return -1;
 	}
-	else
-	{
-		int str_size = strlen(token->content);
-		//strlen vrati velikost bez '\0' tak musime ji pridat + velikost 1 charu
-		char *content = (char *)realloc((void *)token->content, str_size+2);
-		MALLOC_CHECK(content);
-		content[str_size] = (char)input;
-		content[str_size+1] = '\0';
-		token->content = content;
-	}
+
 	input = getc(stdin);
 	if((input >= 'A' && input <= 'Z')  || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') || input == '_')
 	{
@@ -96,19 +188,6 @@ scanner_state_t expect_eof_logic(token_t *token)
 	int input = getc(stdin);
 	switch(input)
 	{
-		/* case 10: //eol */
-		/* 	//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary */
-		/* 	content_lenght = strlen(token->content); */
-		/* 	char *new_content =(char *)realloc((void *)token->content, content_lenght+2); */ 
-		/* 	if(new_content == NULL) */
-		/* 	{ */
-		/* 		fprintf(stderr, "failed to allocate memory with realloc\n"); */
-		/* 		return -1; */
-		/* 	} */
-		/* 	token->content = new_content; */
-		/* 	token->content[content_lenght] = (char)input; */
-		/* 	token->content[content_lenght+1] = '\0'; */
-		/* 	return end_sign_s; */
 		case EOF:
 			return end_prg_s;
 		default:
@@ -130,18 +209,6 @@ scanner_state_t end_sign_logic(token_t *token)
 	int input = getc(stdin);
 	switch(input)
 	{
-			/* //strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary */
-			/* content_lenght = strlen(token->content); */
-			/* char *new_content =(char *)realloc((void *)token->content, content_lenght+2); */ 
-			/* if(new_content == NULL) */
-			/* { */
-			/* 	fprintf(stderr, "failed to allocate memory with realloc\n"); */
-			/* 	return -1; */
-			/* } */
-			/* token->content = new_content; */
-			/* token->content[content_lenght] = (char)input; */
-			/* token->content[content_lenght+1] = '\0'; */
-			/* return end_sign_s; */
 		case EOF:
 			return end_prg_s;
 		case 10: //eol
@@ -158,13 +225,10 @@ scanner_state_t end_sign_logic(token_t *token)
 
 scanner_state_t id_or_end_logic(int input, token_t *token)
 {
-	if(token->content == NULL)
+	if(inf_char_input(input, token) != 0)
 	{
-		char *content = (char *)malloc(2);
-		MALLOC_CHECK(content);
-		content[0] = (char)input;
-		content[1] = '\0';
-		token->content = content;
+		//memory allocation failed
+		return -1;
 	}
 
 	input = getc(stdin);
@@ -193,53 +257,6 @@ scanner_state_t id_or_end_logic(int input, token_t *token)
 			}
 	}
 }
-
-scanner_state_t integ_logic(int input, token_t *token)
-{
-	static int next_index = 0;
-	
-	if(token->content == NULL)
-	{
-		//malloc(1) protoze sizeof(char) je 1
-		char *content = (char *)malloc(1);
-		MALLOC_CHECK(content);
-		content[0] = '\0';
-		token->content = content;
-	}
-	switch(input)
-	{
-		case '.':
-			ungetc(input, stdin);
-			return float_dot_s;
-		case 'E':
-		case 'e':
-			ungetc(input, stdin);
-			return float_e_s;
-		default:
-			if(input >= '0' && input <= '9')
-			{
-				//next_index+2 protoze indexujeme od 0
-				char *new_content =(char *)realloc((void *)token->content, next_index+2); 
-				MALLOC_CHECK(new_content)
-				token->content = new_content;
-				
-				token->content[next_index] = (char)input;
-
-				//next_index+1 vzdy ukazuje na posledni misto ve stringu	
-				token->content[next_index+1] = '\0';
-				return integ_s;
-			}
-			else
-			{
-				token->variant = integ_var;
-				ungetc(input, stdin);
-				
-				next_index = 0;
-				return default_s;
-			}
-	}
-}
-
 
 scanner_state_t default_logic(int input, token_t *token)
 {
@@ -284,6 +301,8 @@ scanner_state_t default_logic(int input, token_t *token)
 			return end_prg_s;
 		case 10: //eol
 			token->line_num++;
+			getc(stdin);
+			return default_s;
 		case 9: //tab
 		case ' ':
 			getc(stdin);
@@ -537,8 +556,10 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			fsm_state = integ_logic(input, token);
             break;
         case float_dot_s :
+			fsm_state = float_dot_logic(input, token);
             break;
         case float_dot_num_s :
+			fsm_state = float_dot_num_logic(input, token);
             break;
         case float_e_s :
             break;
