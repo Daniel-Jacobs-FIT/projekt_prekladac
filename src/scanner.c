@@ -27,27 +27,25 @@ void state_err(int err_char, int line_num)
 }
 
 /* Funkce pro logiku fsm */
-//TODO vymazat ukladani end_prg_var tokenu
-scanner_state_t expect_eof_logic(int input, token_t *token)
+scanner_state_t expect_eof_logic(token_t *token)
 {
-	int content_lenght = 0;
+	int input = getc(stdin);
 	switch(input)
 	{
-		case 10: //eol
-			//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary
-			content_lenght = strlen(token->content);
-			char *new_content =(char *)realloc((void *)token->content, content_lenght+2); 
-			if(new_content == NULL)
-			{
-				fprintf(stderr, "failed to allocate memory with realloc\n");
-				return -1;
-			}
-			token->content = new_content;
-			token->content[content_lenght] = (char)input;
-			token->content[content_lenght+1] = '\0';
-			return end_sign_s;
+		/* case 10: //eol */
+		/* 	//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary */
+		/* 	content_lenght = strlen(token->content); */
+		/* 	char *new_content =(char *)realloc((void *)token->content, content_lenght+2); */ 
+		/* 	if(new_content == NULL) */
+		/* 	{ */
+		/* 		fprintf(stderr, "failed to allocate memory with realloc\n"); */
+		/* 		return -1; */
+		/* 	} */
+		/* 	token->content = new_content; */
+		/* 	token->content[content_lenght] = (char)input; */
+		/* 	token->content[content_lenght+1] = '\0'; */
+		/* 	return end_sign_s; */
 		case EOF:
-			ungetc(input, stdin);
 			return end_prg_s;
 		default:
 			//error case
@@ -63,26 +61,24 @@ scanner_state_t end_prg_logic(token_t *token)
 	return default_s;
 }
 
-scanner_state_t end_sign_logic(int input, token_t *token)
+scanner_state_t end_sign_logic(token_t *token)
 {
-	int content_lenght = 0;
+	int input = getc(stdin);
 	switch(input)
 	{
-		case '>':
-			//strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary
-			content_lenght = strlen(token->content);
-			char *new_content =(char *)realloc((void *)token->content, content_lenght+2); 
-			if(new_content == NULL)
-			{
-				fprintf(stderr, "failed to allocate memory with realloc\n");
-				return -1;
-			}
-			token->content = new_content;
-			token->content[content_lenght] = (char)input;
-			token->content[content_lenght+1] = '\0';
-			return end_sign_s;
+			/* //strlen() vraci delku stringu minus '\0' a proto musime pridat 2 chary */
+			/* content_lenght = strlen(token->content); */
+			/* char *new_content =(char *)realloc((void *)token->content, content_lenght+2); */ 
+			/* if(new_content == NULL) */
+			/* { */
+			/* 	fprintf(stderr, "failed to allocate memory with realloc\n"); */
+			/* 	return -1; */
+			/* } */
+			/* token->content = new_content; */
+			/* token->content[content_lenght] = (char)input; */
+			/* token->content[content_lenght+1] = '\0'; */
+			/* return end_sign_s; */
 		case EOF:
-			ungetc(input, stdin);
 			return end_prg_s;
 		case 10: //eol
 			ungetc(input, stdin);
@@ -96,23 +92,24 @@ scanner_state_t end_sign_logic(int input, token_t *token)
 	}
 }
 
-scanner_state_t id_or_end_logic(int input, token_t *token)
+scanner_state_t id_or_end_logic(token_t *token)
 {
-	if(token->content == NULL)
-	{
-		//malloc(2) protoze sizeof(char) + '?'	
-		char *content = (char *)malloc(2);
-		if(content == NULL)
-		{
-			//malloc fail
-			fprintf(stderr, "failed to initialize memory with malloc\n");
-			return -1;
-		}
-		content[1] = '\0';
-		content[0] = (char)input;
-		token->content = content;
-		return id_or_end_s;
-	}
+	/* if(token->content == NULL) */
+	/* { */
+	/* 	//malloc(2) protoze sizeof(char) + '?' */	
+	/* 	char *content = (char *)malloc(2); */
+	/* 	if(content == NULL) */
+	/* 	{ */
+	/* 		//malloc fail */
+	/* 		fprintf(stderr, "failed to initialize memory with malloc\n"); */
+	/* 		return -1; */
+	/* 	} */
+	/* 	content[1] = '\0'; */
+	/* 	content[0] = (char)input; */
+	/* 	token->content = content; */
+	/* 	return id_or_end_s; */
+	/* } */
+	int input = getc(stdin);
 	switch(input)
 	{
 		case '>':
@@ -498,15 +495,15 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case float_e_num :
             break;
         case id_or_end_s :
-			fsm_state = id_or_end_logic(input, token);
+			fsm_state = id_or_end_logic(token);
             break;
         case identif_s :
             break;
         case end_sign_s :
-			fsm_state = end_sign_logic(input, token);
+			fsm_state = end_sign_logic(token);
             break;
 		case expect_eof_s :
-			fsm_state = expect_eof_logic(input, token);
+			fsm_state = expect_eof_logic(token);
 			break;
         case end_prg_s :
 			fsm_state = end_prg_logic(token);
