@@ -9,12 +9,22 @@ static char buffer[5];
 static int decimal = 0;
 static int string_buffer_count = 0;
 
+/*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
+#define ERR_CASE(NAME)\
+{\
+	token->variant = err_var;\
+	state_err(NAME, input, token->line_num);\
+	return default_s;\
+}
+
+/*makro pro testovani jestli prosel malloc nebo realloc*/
 #define MALLOC_CHECK(NAME)\
 if(NAME == NULL)\
 {\
 	fprintf(stderr, "failed to allocate memory\n");\
 	return 1;\
 }
+
 int inf_char_input(int input, token_t *token)
 {
 	if(token->content == NULL)
@@ -61,6 +71,75 @@ void state_err(char *fce_name, int err_char, int line_num)
 }
 
 /* Funkce pro logiku fsm */
+scanner_state_t float_e_num_logic(int input, token_t *token)
+{
+	if(inf_char_input(input, token) != 0)
+	{
+		//memory allocation failed
+		return -1;
+	}
+
+	input = getc(stdin);
+	if(input >= '0' && input <= '9')
+	{
+		ungetc(input, stdin);
+		return float_e_num_s;
+	}else
+	{
+		token->variant = float_e_num_var;	
+		ungetc(input, stdin);
+		return default_s;
+	}
+}
+
+scanner_state_t float_e_sign_logic(int input, token_t *token)
+{
+	if(inf_char_input(input, token) != 0)
+	{
+		//memory allocation failed
+		return -1;
+	}
+
+	input = getc(stdin);
+	if(input >= '0' && input <= '9')
+	{
+		ungetc(input, stdin);
+		return float_e_num_s;
+	}
+	else
+	{
+		ERR_CASE("float_e_sign_logic");
+	}
+}
+
+scanner_state_t float_e_logic(int input, token_t *token)
+{
+	if(inf_char_input(input, token) != 0)
+	{
+		//memory allocation failed
+		return -1;
+	}
+
+	input = getc(stdin);
+	switch(input)
+	{
+		case '+':
+		case '-':
+			ungetc(input, stdin);
+			return float_e_sign_s;
+		default:
+			if(input >= '0' && input <= '9')
+			{
+				ungetc(input, stdin);
+				return float_e_num_s;
+			}
+			else
+			{
+				ERR_CASE("float_e_logic");
+			}
+	}
+}
+
 scanner_state_t float_dot_num_logic(int input, token_t *token)
 {
 	if(inf_char_input(input, token) != 0)
@@ -103,10 +182,7 @@ scanner_state_t float_dot_logic(int input, token_t *token)
 		return float_dot_num_s;
 	}else
 	{
-		//error case
-		token->variant = err_var;
-		state_err("float_dot_logic", input, token->line_num);
-		return default_s;
+		ERR_CASE("float_dot_logic");
 	}
 }
 
@@ -172,9 +248,7 @@ scanner_state_t identif_logic(int input, token_t *token)
 			}
 			if(is_keyword == false)
 			{
-				token->variant = err_var;
-				state_err("identif_logic", input, token->line_num);
-				return default_s;
+				ERR_CASE("identif_logic");
 			}
 		}
 		token->variant = identif_var;
@@ -191,10 +265,7 @@ scanner_state_t expect_eof_logic(token_t *token)
 		case EOF:
 			return end_prg_s;
 		default:
-			//error case
-			token->variant = err_var;
-			state_err("expect_eof_logic", input, token->line_num);
-			return default_s;
+			ERR_CASE("expect_eof_logic");
 	}
 }
 
@@ -215,11 +286,7 @@ scanner_state_t end_sign_logic(token_t *token)
 			ungetc(input, stdin);
 			return expect_eof_s;
 		default:
-			//error case
-			token->variant = err_var;
-			state_err("end_sight_logic", input, token->line_num);
-			return default_s;
-			
+			ERR_CASE("end_sign_logic");	
 	}
 }
 
@@ -250,10 +317,7 @@ scanner_state_t id_or_end_logic(int input, token_t *token)
 			}
 			else
 			{
-				//error case
-				token->variant = err_var;
-				state_err("id_or_end_logic", input, token->line_num);
-				return default_s;
+				ERR_CASE("id_or_end_logic");
 			}
 	}
 }
@@ -317,11 +381,8 @@ scanner_state_t default_logic(int input, token_t *token)
 				return integ_s;
 			}else
 			{
-				//error case
-				token->variant = err_var;
-				state_err("default_logic", cmp, token->line_num);
-				return default_s;
-			}	
+				ERR_CASE("default_logic");
+			}
 	}
 }
 
@@ -562,10 +623,13 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			fsm_state = float_dot_num_logic(input, token);
             break;
         case float_e_s :
+			fsm_state = float_e_logic(input, token);
             break;
         case float_e_sign_s :
-            break;
-        case float_e_num :
+            fsm_state = float_e_sign_logic(input, token);
+			break;
+        case float_e_num_s :
+            fsm_state = float_e_num_logic(input, token);
             break;
         case id_or_end_s :
 			fsm_state = id_or_end_logic(input, token);
