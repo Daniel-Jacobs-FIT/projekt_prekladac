@@ -57,7 +57,7 @@ funkce na vypisovani error message pri ziskani neplatneho charu
 */
 void state_err(char *fce_name, int err_char, int line_num)
 {
-	printf("Error: in functions %s unexpected ", fce_name);
+	printf("Error: in function %s: unexpected ", fce_name);
 	if(err_char == EOF)
 	{
 		printf("EOF at line %d\n", line_num);
@@ -250,7 +250,9 @@ scanner_state_t identif_logic(int input, token_t *token)
 			}
 			if(is_keyword == false)
 			{
-				ERR_CASE("identif_logic");
+				printf("Error: in function identif_logic: expected keyword instead of '%s'\n", token->content);
+				token->variant = err_var;
+				return default_s;
 			}
 		}
 		token->variant = identif_var;
