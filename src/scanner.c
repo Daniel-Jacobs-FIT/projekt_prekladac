@@ -5,6 +5,8 @@
 
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
+const int KEYWORD_COUNT = 13;
+const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 static char buffer[5];
 static int decimal = 0;
 static int string_buffer_count = 0;
