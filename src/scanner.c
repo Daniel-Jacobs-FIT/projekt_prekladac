@@ -501,96 +501,113 @@ scanner_state_t fsm_step(int input, token_t *token) {
             break;
         case string_lit_end_s :
             token->variant = string_lit_end_var;
-            /* token->content = &input; *///EDIT: mel by dat malloc a ulozit do neho content input, takhle se ulozi stracena pamet
+			fsm_state = default_s;
             break;
         case string_lit_s :
             if(input == '"') {
                 fsm_state = string_lit_end_s;
-                printf("scan lit end\n");
                 break;
             }
             else if(input == '\\'){
                 fsm_state = esc_char_s;
-                printf("esc char state\n");
             }
-            else {
-                string_buffer(*token, &input);
-            }
+            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') ) { //alfanumericke znaky
+				if(inf_char_input(input, token) != 0)
+					return -1;
+			}
+			else {
+				ERR_CASE("Invalid characters");
+			} 	
             break;
             
+		//ESCAPE SEQUENCES
         case esc_char_s :
             if(strchr("nrtve\\$", input) != NULL){ //escape sequence
+
+				switch(input)
+				{
+					case 'n': 
+						inf_char_input(10, token); //newline
+						break;
+					case 'r': //????;
+						break;
+					case 't': 
+						inf_char_input(9, token); //tab
+						break;
+					case 'v': 
+						inf_char_input(input, token); //WIP
+						break;
+					case 'e': 
+						inf_char_input(input, token); //WIP
+						break;
+					case '\\': 
+						inf_char_input(input, token);
+						break;
+					case '$': 
+						inf_char_input(input, token); 
+						break;
+				}
                 fsm_state = esc_seq_s;
-                printf("esc_seq\n");
                 break;
             }
             else if(strchr("x", input) != NULL) { //hex sequence
                 fsm_state = hex1_s;
                 decimal = 0;
-                printf("hex1_s\n");
                 break;
             }
             else if(strchr("0123", input) != NULL){ //octal sequence
                 fsm_state = oct1_s;
                 decimal = 0;
                 to_decimal(input, 8, 2);
-                printf("oct_start\n");
                 break;
             }
             else {
                 fsm_state = string_lit_s;
-                printf("string_lit_s\n");
                 break;
             }
         case esc_seq_s :
             if(input == '"') {
                 fsm_state = string_lit_end_s;
-                printf("scan lit end\n");
                 break;
             }
             else {
                 fsm_state = string_lit_s;
-                printf("string_lit\n");
                 break;
             }
         case hex1_s :
             if(input == '"') {
                 fsm_state = string_lit_end_s;
-                printf("scan lit end\n");
                 break;
             }
             else if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
-                to_decimal(input, 16, 1);
+                //to_decimal(input, 16, 1);
                 fsm_state = hex2_s;
-                printf("hex2_s\n");
                 break;
             }
             else {
                 fsm_state = string_lit_s;
-                printf("string_lit\n");
                 break;
             }
         case hex2_s :
              if(input == '"') {
                 fsm_state = string_lit_end_s;
-                printf("scan lit end\n");
                 break;
             }
             else if (strchr("123456789aAbBcCdDeEfF", input) != NULL) {
                 fsm_state = string_lit_s;
-                printf("%d\n", to_decimal(input, 16, 0));
-                printf("string_lit\n");
+				to_decimal(input, 16, 0);
+				if(inf_char_input(decimal, token) != 0)
+					return -1;
+				printf("%d\n", decimal);
                 break;
             }
             else {
                 fsm_state = string_lit_s;
-                printf("string_lit\n");
                 break;
             }
         case oct1_s :
             if(input == '"') {
                 fsm_state = string_lit_end_s;
-                printf("scan lit end\n");
                 break;
             }
             else if (strchr("01234567", input) != NULL) {
@@ -605,7 +622,6 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case oct2_s :
             if(input == '"') {
                 fsm_state = string_lit_end_s;
-                printf("scan lit end\n");
                 break;
             }
             else if (strchr("01234567", input) != NULL) {
