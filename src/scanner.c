@@ -336,8 +336,9 @@ scanner_state_t default_logic(int input, token_t *token)
 			return div_oper_s;
 		case '+':
 		case '-':
-		case '*':
 			return num_oper_s;
+		case '*':
+			return num_oper_adv_s;
 		case '.':
 			return oper_conc_s;
 		case '!':
@@ -466,39 +467,50 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 fsm_state=com_block_s;
                 break;
             }
-            else 
+            else {
                 token->variant=div_oper;
                 break;
+			}
         case com_oneline_s : 
-           if(input == 'EOL'){
-                token->variant=none;
+           if(input == '/n'){
+				fsm_state = default_s;
                 break;
            }
             else{
                fsm_state=com_oneline_s;
+			   break;
             }
         case com_block_s : 
             if(input == '*'){
                 fsm_state=com_block_end_s;
                 break;
             }
+			else if(input == EOF){
+				ERR_CASE("missing com_block_end");
+				break;
+			}
             else{
                 fsm_state=com_block_s;
                 break;
             }
         case com_block_end_s :
             if(input == '/'){
-                 token->variant=none;
+				 fsm_state = default_s;
                  break;
             }
-            fsm_state=com_block_end_s;
+            fsm_state=com_block_s;
             break;
            
         case num_oper_s :
            token->variant=num_oper_var;
+		   fsm_state = default_s;
             break;
+		case num_oper_adv_s:
+			token->variant=num_oper_adv_var;
+			fsm_state = default_s;
         case oper_conc_s :
              token->variant=oper_conc_var;
+			 fsm_state = default_s;
             break;
         case not_eq1_s :
             if(input == '='){
@@ -520,6 +532,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
         case not_eq3_s :
             token->variant=not_eq_var;
+			fsm_state = default_s;
             break;
         case eq_or_assign_s :
             if(input == '='){
@@ -528,6 +541,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
             else{
                 token->variant=eq_or_assign_var;
+				fsm_state = default_s;
                 break;
             }
         case eq2_s :
@@ -541,19 +555,22 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
         case eq3_s :
             token->variant=eq_var;
+			fsm_state = default_s;
             break;
         case grt_s :
             if(input == '='){
                 fsm_state=grt_eq_s;
                 break;
             }
-            else{
+            else {
                 token->variant=grt_var;
+				fsm_state = default_s;
                 break;
             }
             
         case grt_eq_s :
-            token->variant=grt_eq_var   ;
+            token->variant=grt_eq_var; 
+			fsm_state = default_s;
             break;
         case less_s :
             if(input == '='){
@@ -562,25 +579,32 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
             else{
                token->variant=less_var;
+			   fsm_state = default_s;
                break; 
             }
         case less_eq_s :
             token->variant=less_eq_var;
+			fsm_state = default_s;
             break;
         case open_rnd_s :
             token->variant=open_rnd_var;
+			fsm_state = default_s;
             break;
         case cls_rnd_s :
             token->variant=cls_rnd_var;
+			fsm_state = default_s;
             break;
         case open_curl_s :
             token->variant=open_curl_var;
+			fsm_state = default_s;
             break;
         case cls_curl_s :
             token->variant=cls_curl_var;
+			fsm_state = default_s;
             break;
         case semicol_s :
             token->variant=semicol_var;
+			fsm_state = default_s;
             break;
         case string_lit_end_s :
             token->variant = string_lit_end_var;
