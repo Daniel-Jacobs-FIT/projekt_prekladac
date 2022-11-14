@@ -457,47 +457,130 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case default_s :
 			fsm_state = default_logic(input, token);
 			break;
-        case div_oper_s :
-            break;
+         case div_oper_s :
+            if(input == '/'){
+                fsm_state=com_oneline_s;
+                break;
+            }
+            else if(input == '*') {
+                fsm_state=com_block_s;
+                break;
+            }
+            else 
+                token->variant=div_oper;
+                break;
         case com_oneline_s : 
-            break; 
+           if(input == 'EOL'){
+                token->variant=none;
+                break;
+           }
+            else{
+               fsm_state=com_oneline_s;
+            }
         case com_block_s : 
-            break;
+            if(input == '*'){
+                fsm_state=com_block_end_s;
+                break;
+            }
+            else{
+                fsm_state=com_block_s;
+                break;
+            }
         case com_block_end_s :
+            if(input == '/'){
+                 token->variant=none;
+                 break;
+            }
+            fsm_state=com_block_end_s;
             break;
+           
         case num_oper_s :
+           token->variant=num_oper_var;
             break;
         case oper_conc_s :
+             token->variant=oper_conc_var;
             break;
         case not_eq1_s :
-            break;
+            if(input == '='){
+                fsm_state=not_eq2_s;
+                break;
+            }
+            else{
+                state_err(input,token->line_num);
+                break;
+            }
         case not_eq2_s :
-            break;
+            if(input == '='){
+                fsm_state=not_eq3_s;
+                break;
+            }
+            else{
+                state_err(input,token->line_num);
+                break;
+            }
         case not_eq3_s :
+            token->variant=not_eq_var;
             break;
         case eq_or_assign_s :
-            break;
+            if(input == '='){
+                fsm_state=eq2_s;
+                break;
+            }
+            else{
+                token->variant=eq_or_assign_var;
+                break;
+            }
         case eq2_s :
-            break;
+            if(input == '='){
+                fsm_state=eq3_s;
+                break;
+            }
+            else{
+                state_err(input,token->line_num);
+                break;
+            }
         case eq3_s :
+            token->variant=eq_var;
             break;
         case grt_s :
-            break;
+            if(input == '='){
+                fsm_state=grt_eq_s;
+                break;
+            }
+            else{
+                token->variant=grt_var;
+                break;
+            }
+            
         case grt_eq_s :
+            token->variant=grt_eq_var   ;
             break;
         case less_s :
-            break;
+            if(input == '='){
+                fsm_state=less_eq_s;
+                break;
+            }
+            else{
+               token->variant=less_var;
+               break; 
+            }
         case less_eq_s :
+            token->variant=less_eq_var;
             break;
         case open_rnd_s :
+            token->variant=open_rnd_var;
             break;
         case cls_rnd_s :
+            token->variant=cls_rnd_var;
             break;
         case open_curl_s :
+            token->variant=open_curl_var;
             break;
         case cls_curl_s :
+            token->variant=cls_curl_var;
             break;
         case semicol_s :
+            token->variant=semicol_var;
             break;
         case string_lit_end_s :
             token->variant = string_lit_end_var;
