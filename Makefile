@@ -6,7 +6,7 @@ REL-OBJS=${MAIN-OBJ} ${LIB-OBJS}
 TEST-OBJ=${SRCDIR}/scanner-tests.o
 ALL-OBJS=${REL-OBJS} ${TEST-OBJ}
 
-CFLAGS=-Wall -Wextra -Wpedantic -g
+CFLAGS=-Wall -Wextra -Wpedantic -g -lm
 CC=gcc
 PROJECT-NAME=ifj22compiler
 S_TEST_NAME=scanner-test

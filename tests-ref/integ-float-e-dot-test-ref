@@ -1,0 +1,4 @@
+Token:"123.652e524" Variant:float_e_num_var Line:1
+Token:"1.596E6" Variant:float_e_num_var Line:2
+Token:"0008.1e13" Variant:float_e_num_var Line:3
+Token:"" Variant:end_prg_var Line:4

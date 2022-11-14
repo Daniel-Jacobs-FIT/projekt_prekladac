@@ -1,0 +1,11 @@
+Token:"if" Variant:identif_var Line:1
+Token:"else" Variant:identif_var Line:2
+Token:"int" Variant:identif_var Line:3
+Token:"float" Variant:identif_var Line:4
+Token:"function" Variant:identif_var Line:5
+Token:"null" Variant:identif_var Line:6
+Token:"return" Variant:identif_var Line:7
+Token:"string" Variant:identif_var Line:8
+Token:"void" Variant:identif_var Line:9
+Token:"while" Variant:identif_var Line:10
+Token:"" Variant:end_prg_var Line:11
