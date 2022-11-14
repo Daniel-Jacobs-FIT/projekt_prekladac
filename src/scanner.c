@@ -506,7 +506,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else{
-                state_err(input,token->line_num);
+                ERR_CASE("Invalid characters");
                 break;
             }
         case not_eq2_s :
@@ -515,7 +515,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else{
-                state_err(input,token->line_num);
+                ERR_CASE("Invalid characters");
                 break;
             }
         case not_eq3_s :
@@ -536,7 +536,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else{
-                state_err(input,token->line_num);
+                ERR_CASE("Invalid characters");
                 break;
             }
         case eq3_s :
