@@ -704,7 +704,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             else if(input == '\\'){
                 fsm_state = esc_char_s;
             }
-            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') ) { //alfanumericke znaky
+            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') || (input == ' ') ) { //alfanumericke znaky
 				if(inf_char_input(input, token) != 0)
 					return -1;
 			}
