@@ -8,7 +8,6 @@ const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 static char buffer[5];
-static int decimal = 0;
 static int string_buffer_count = 0;
 
 /*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
@@ -360,6 +359,7 @@ scanner_state_t default_logic(int input, token_t *token)
 		case '}':
 			return cls_curl_s;
 		case '"':
+			getc(stdin);
 			return string_lit_s;
 		case '_' :
 		case '$' :
@@ -555,7 +555,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
 			}
         case com_oneline_s : 
-           if(input == '/n'){
+           if(input == '\n'){
 				fsm_state = default_s;
                 break;
            }
@@ -591,6 +591,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
 		case num_oper_adv_s:
 			token->variant=num_oper_adv_var;
 			fsm_state = default_s;
+			break;
         case oper_conc_s :
              token->variant=oper_conc_var;
 			 fsm_state = default_s;
