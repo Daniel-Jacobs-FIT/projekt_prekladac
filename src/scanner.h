@@ -9,11 +9,7 @@
 /* Enum pro urceni stavu automatu ridiciho lexikalni analyzu
  * */
 typedef enum {default_s, div_oper_s, com_oneline_s,\
-<<<<<<< HEAD
                 com_block_s, com_block_end_s, num_oper_s, num_oper_adv_s,\
-=======
-                com_block_s, com_block_end_s, num_oper_s,num_oper_adv_s,\
->>>>>>> 3b7a1aae779a7c3047cd2f8140b32aa69949d973
                 oper_conc_s, not_eq1_s, not_eq2_s, not_eq3_s,\
                 eq_or_assign_s, eq2_s, eq3_s, grt_s, grt_eq_s,\
                 less_s, less_eq_s, open_rnd_s, cls_rnd_s,\
