@@ -8,7 +8,6 @@ const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 static char buffer[5];
-static int decimal = 0;
 static int string_buffer_count = 0;
 
 /*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
@@ -360,6 +359,7 @@ scanner_state_t default_logic(int input, token_t *token)
 		case '}':
 			return cls_curl_s;
 		case '"':
+            getc(stdin);
 			return string_lit_s;
 		case '_' :
 		case '$' :
@@ -555,7 +555,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
 			}
         case com_oneline_s : 
-           if(input == '/n'){
+           if(input == '\n'){
 				fsm_state = default_s;
                 break;
            }
@@ -579,11 +579,11 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case com_block_end_s :
             if(input == '/'){
 				 fsm_state = default_s;
-                 break;	 
+                 break;
             }
 			else{
-            fsm_state=com_block_s;
-            break;
+                fsm_state=com_block_s;
+                break;
 			}
         case num_oper_s :
            token->variant=num_oper_var;
@@ -592,6 +592,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
 		case num_oper_adv_s:
 			token->variant=num_oper_adv_var;
 			fsm_state = default_s;
+            break;
         case oper_conc_s :
              token->variant=oper_conc_var;
 			 fsm_state = default_s;
@@ -690,16 +691,11 @@ scanner_state_t fsm_step(int input, token_t *token) {
             token->variant=semicol_var;
 			fsm_state = default_s;
             break;
-        
-
-
         case string_lit_end_s :
             token->variant = string_lit_end_var;
 			token->line_num = 1;
 			fsm_state = default_s;
             break;
-
-
         case string_lit_s :
 			//input = getc(stdin);
             if(input == '"') {
@@ -709,7 +705,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             else if(input == '\\'){
                 fsm_state = esc_char_s;
             }
-            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') ) { //alfanumericke znaky
+            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') || (input == ' ') ) { //alfanumericke znaky
 				if(inf_char_input(input, token) != 0)
 					return -1;
 			}
