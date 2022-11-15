@@ -688,24 +688,13 @@ scanner_state_t fsm_step(int input, token_t *token) {
             break;
         case semicol_s :
             token->variant=semicol_var;
-<<<<<<< HEAD
 			fsm_state = default_s;
             break;
-        case string_lit_end_s :
-            token->variant = string_lit_end_var;
-=======
->>>>>>> 3b7a1aae779a7c3047cd2f8140b32aa69949d973
-			fsm_state = default_s;
-            break;
-
-
         case string_lit_end_s :
             token->variant = string_lit_end_var;
 			token->line_num = 1;
 			fsm_state = default_s;
             break;
-
-
         case string_lit_s :
 			//input = getc(stdin);
             if(input == '"') {
