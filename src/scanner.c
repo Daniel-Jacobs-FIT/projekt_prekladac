@@ -426,6 +426,8 @@ void string_buffer(token_t token, int *input) {
 
 }
 
+
+
 int to_decimal(char input, int type, int position) {
     int base;
 
@@ -582,11 +584,17 @@ scanner_state_t fsm_step(int input, token_t *token) {
         case semicol_s :
             token->variant=semicol_var;
             break;
+
+
         case string_lit_end_s :
             token->variant = string_lit_end_var;
+			token->line_num = 1;
 			fsm_state = default_s;
             break;
+
+
         case string_lit_s :
+			input = getc(stdin);
             if(input == '"') {
                 fsm_state = string_lit_end_s;
                 break;
@@ -609,31 +617,41 @@ scanner_state_t fsm_step(int input, token_t *token) {
 
 				switch(input)
 				{
+					//Cisla pro input jsou ASCII kody pozadovanych znaku
 					case 'n': 
 						inf_char_input(10, token); //newline
+						fsm_state = string_lit_s;
 						break;
-					case 'r': //????;
+					case 'r':
+						inf_char_input(13, token); //carriage return
+						fsm_state = string_lit_s;
 						break;
 					case 't': 
 						inf_char_input(9, token); //tab
+						fsm_state = string_lit_s;
 						break;
 					case 'v': 
-						inf_char_input(input, token); //WIP
+						inf_char_input(11, token); //vertical tab
+						fsm_state = string_lit_s;
 						break;
 					case 'e': 
-						inf_char_input(input, token); //WIP
+						inf_char_input(27, token); //escape
+						fsm_state = string_lit_s;
 						break;
 					case '\\': 
-						inf_char_input(input, token);
+						inf_char_input(input, token); //backslash
+						fsm_state = string_lit_s;
 						break;
 					case '$': 
-						inf_char_input(input, token); 
+						inf_char_input(input, token); //dollar sign
+						fsm_state = string_lit_s;
 						break;
 				}
                 fsm_state = esc_seq_s;
                 break;
             }
-            else if(strchr("x", input) != NULL) { //hex sequence
+            
+			else if(strchr("x", input) != NULL) { //hex sequence
                 fsm_state = hex1_s;
                 decimal = 0;
                 break;
@@ -649,21 +667,30 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
         case esc_seq_s :
+
+		//Escape sequence content save by mel pro prehled byt az tady, aby v esc_seq_s nemusela
+		//byt volana funkce pro ukladani normalnich znaku, ted tam vsak je jinak to preskoci
+		//vzdy prvni znak po escape sequence
+		//Pripadne asi pujde se stavu esc_seq_s kompletne zbavit
             if(input == '"') {
                 fsm_state = string_lit_end_s;
                 break;
             }
             else {
+				if(inf_char_input(input, token) != 0)
+					return -1;
                 fsm_state = string_lit_s;
                 break;
             }
+
+		
         case hex1_s :
             if(input == '"') {
                 fsm_state = string_lit_end_s;
                 break;
             }
             else if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
-                //to_decimal(input, 16, 1);
+                to_decimal(input, 16, 1);
                 fsm_state = hex2_s;
                 break;
             }
