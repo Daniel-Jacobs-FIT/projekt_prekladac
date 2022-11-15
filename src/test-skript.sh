@@ -4,7 +4,7 @@ BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 GREEN="\033[0;32m"
 
-SCTEST=tests/scanner-in
+SCTEST=tests/scanner
 
 cd ${SCTEST} && for DIR in *; do
     cd  ${DIR} && for TEST in *; do
