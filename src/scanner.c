@@ -332,6 +332,7 @@ scanner_state_t default_logic(int input, token_t *token)
 	switch(cmp)
 	{
 		case '/':
+			getc(stdin);
 			return div_oper_s;
 		case '+':
 		case '-':
@@ -341,12 +342,16 @@ scanner_state_t default_logic(int input, token_t *token)
 		case '.':
 			return oper_conc_s;
 		case '!':
+			getc(stdin);
 			return not_eq1_s;
 		case '=':
+			getc(stdin);
 			return eq_or_assign_s;
 		case '>':
+			getc(stdin);
 			return grt_s;
 		case '<':
+			getc(stdin);
 			return less_s;
 		case '(':
 			return open_rnd_s;
@@ -551,11 +556,14 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else {
+				ungetc(input,stdin);
                 token->variant=div_oper;
+				fsm_state = default_s;
                 break;
 			}
         case com_oneline_s : 
            if(input == '\n'){
+				token->variant=none;
 				fsm_state = default_s;
                 break;
            }
@@ -569,6 +577,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
 			else if(input == EOF){
+				fsm_state = default_s;
 				ERR_CASE("missing com_block_end");
 				break;
 			}
@@ -578,6 +587,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
         case com_block_end_s :
             if(input == '/'){
+				 ungetc(input,stdin);
 				 fsm_state = default_s;
                  break;
             }
@@ -602,20 +612,20 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 fsm_state=not_eq2_s;
                 break;
             }
-            else{
-                ERR_CASE("Invalid characters");
-                break;
-            }
+			ungetc(input,stdin);
+			fsm_state = default_s;
+			ERR_CASE("id_or_end_logic");
+            break;
         case not_eq2_s :
             if(input == '='){
                 fsm_state=not_eq3_s;
                 break;
             }
-            else{
-                ERR_CASE("Invalid characters");
-                break;
-            }
+			fsm_state = default_s;
+			ERR_CASE("id_or_end_logic");
+            break;
         case not_eq3_s :
+			ungetc(input,stdin);
             token->variant=not_eq_var;
 			fsm_state = default_s;
             break;
@@ -624,30 +634,33 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 fsm_state=eq2_s;
                 break;
             }
-            else{
-                token->variant=eq_or_assign_var;
-				fsm_state = default_s;
-                break;
-            }
+			ungetc(input,stdin);
+            token->variant=eq_or_assign_var;
+			fsm_state = default_s;
+            break;
         case eq2_s :
             if(input == '='){
                 fsm_state=eq3_s;
                 break;
             }
-            else{
-                ERR_CASE("Invalid characters");
-                break;
-            }
+			ungetc(input,stdin);
+			fsm_state = default_s;
+            ERR_CASE("Invalid characters");
+            break;
+            
         case eq3_s :
+			ungetc(input,stdin);
             token->variant=eq_var;
 			fsm_state = default_s;
             break;
         case grt_s :
             if(input == '='){
+				ungetc(input, stdin);
                 fsm_state=grt_eq_s;
                 break;
             }
             else {
+				ungetc(input, stdin);
                 token->variant=grt_var;
 				fsm_state = default_s;
                 break;
@@ -659,10 +672,12 @@ scanner_state_t fsm_step(int input, token_t *token) {
             break;
         case less_s :
             if(input == '='){
+				ungetc(input, stdin);
                 fsm_state=less_eq_s;
                 break;
             }
             else{
+			   ungetc(input, stdin);
                token->variant=less_var;
 			   fsm_state = default_s;
                break; 
