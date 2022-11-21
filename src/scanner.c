@@ -563,10 +563,16 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			}
         case com_oneline_s : 
            if(input == '\n'){
+				ungetc(input,stdin);
 				token->variant=none;
 				fsm_state = default_s;
                 break;
            }
+		   else if(input == EOF){
+				fsm_state = default_s;
+				ERR_CASE("com_oneline_s");
+				break;
+		   }
             else{
                fsm_state=com_oneline_s;
 			   break;
@@ -578,7 +584,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
 			else if(input == EOF){
 				fsm_state = default_s;
-				ERR_CASE("missing com_block_end");
+				ERR_CASE("com_block_s");
 				break;
 			}
             else{
@@ -587,7 +593,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
         case com_block_end_s :
             if(input == '/'){
-				 ungetc(input,stdin);
+				 token->variant=none;
 				 fsm_state = default_s;
                  break;
             }
@@ -614,7 +620,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
 			ungetc(input,stdin);
 			fsm_state = default_s;
-			ERR_CASE("id_or_end_logic");
+			ERR_CASE("not_eq1_s");
             break;
         case not_eq2_s :
             if(input == '='){
@@ -622,7 +628,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
 			fsm_state = default_s;
-			ERR_CASE("id_or_end_logic");
+			ERR_CASE("not_eq2_s");
             break;
         case not_eq3_s :
 			ungetc(input,stdin);
@@ -645,7 +651,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
 			ungetc(input,stdin);
 			fsm_state = default_s;
-            ERR_CASE("Invalid characters");
+            ERR_CASE("eq2_s");
             break;
             
         case eq3_s :
