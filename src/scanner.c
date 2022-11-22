@@ -812,69 +812,24 @@ scanner_state_t fsm_step(int input, token_t *token) {
 
 		//TODO - Dokoncit prevedeni na HEX a OCT sequence funkce
         case hex1_s :
-            if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
-                //to_decimal(input, 16, 1);
-                fsm_state = hex2_s;
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
-        case hex2_s :
-             if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("123456789aAbBcCdDeEfF", input) != NULL) {
-				/*
-                fsm_state = string_lit_s;
-				to_decimal(input, 16, 0);
-				if(inf_char_input(decimal, token) != 0)
-					return -1;
-				printf("%d\n", decimal);
-				*/
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
+        
+            //if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
+				//Pokud to neni valid hex sekvence, nacte momentalni znak
+				//a prepne se do stavu string_lit_s
+            if(hex_sequence(input, token) == false){	
+					inf_char_input(input, token);
+			}
+			fsm_state = string_lit_s;
+            break;
+            //}
+           
         case oct1_s :
-            if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("01234567", input) != NULL) {
-                //to_decimal(input, 8, 1);
-                fsm_state = oct2_s;
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
-        case oct2_s :
-            if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("01234567", input) != NULL) {
-
-                //printf("%d\n", to_decimal(input, 8, 0));
-                fsm_state = string_lit_s;
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
-
-
+			if(oct_sequence(input, token) == false){
+				inf_char_input(input, token);
+			}
+			fsm_state = string_lit_s;
+			break;
+	
         case integ_s :
 			fsm_state = integ_logic(input, token);
             break;
