@@ -1,0 +1,5 @@
+fce_name
+main
+int add
+void dont_know_exe()
+concant(?string $str1, string $str2, ?int $total_size) : string{}

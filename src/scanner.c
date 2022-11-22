@@ -247,14 +247,20 @@ scanner_state_t identif_logic(int input, token_t *token)
 					break;
 				}
 			}
-			if(is_keyword == false)
+			if(is_keyword == true)
 			{
-				printf("Error: in function identif_logic: expected keyword instead of '%s'\n", token->content);
-				token->variant = err_var;
-				return default_s;
+				token->variant = identif_keyword_var;
+			}
+			else
+			{
+				token->variant = identif_function_var;
 			}
 		}
-		token->variant = identif_var;
+		else
+		{
+			token->variant = identif_variable_var;
+		}
+		//should run always
 		ungetc(input, stdin);
 		return default_s;
 	}
@@ -357,6 +363,12 @@ scanner_state_t default_logic(int input, token_t *token)
 			return open_rnd_s;
 		case ')':
 			return cls_rnd_s;
+		case ',':
+			getc(stdin);
+			return comma_s;
+		case ':':
+			getc(stdin);
+			return colon_s;
 		case '{':
 			return open_curl_s;
 		case ';':
@@ -700,6 +712,14 @@ scanner_state_t fsm_step(int input, token_t *token) {
             token->variant=cls_rnd_var;
 			fsm_state = default_s;
             break;
+		case comma_s:
+			token->variant = comma_var;
+			fsm_state = default_s;
+			break;
+		case colon_s:
+			token->variant = colon_var;
+			fsm_state = default_s;
+			break;
         case open_curl_s :
             token->variant=open_curl_var;
 			fsm_state = default_s;

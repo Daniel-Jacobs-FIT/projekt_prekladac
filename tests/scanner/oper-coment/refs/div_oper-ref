@@ -1,0 +1,4 @@
+Token:"5" Variant:integ_var Line:1
+Token:"$a" Variant:identif_var Line:1
+Token:"$inf" Variant:identif_var Line:1
+Token:"" Variant:end_prg_var Line:1
