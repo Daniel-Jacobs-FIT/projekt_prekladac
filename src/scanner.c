@@ -341,10 +341,11 @@ scanner_state_t default_logic(int input, token_t *token)
 			getc(stdin);
 			return div_oper_s;
 		case '+':
+			return add_oper_s;
 		case '-':
-			return num_oper_s;
+			return sub_oper_s;
 		case '*':
-			return num_oper_adv_s;
+			return mul_oper_s;
 		case '.':
 			return oper_conc_s;
 		case '!':
@@ -613,12 +614,16 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 fsm_state=com_block_s;
                 break;
 			}
-        case num_oper_s :
-           token->variant=num_oper_var;
+        case add_oper_s :
+           token->variant=add_oper;
 		   fsm_state = default_s;
             break;
-		case num_oper_adv_s:
-			token->variant=num_oper_adv_var;
+		case sub_oper_s :
+           token->variant=sub_oper;
+		   fsm_state = default_s;
+            break;
+		case mul_oper_s:
+			token->variant=mul_oper;
 			fsm_state = default_s;
             break;
         case oper_conc_s :
