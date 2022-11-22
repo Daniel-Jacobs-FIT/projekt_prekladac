@@ -1,4 +1,4 @@
-Token:"?float" Variant:identif_var Line:1
-Token:"?int" Variant:identif_var Line:2
-Token:"?string" Variant:identif_var Line:3
+Token:"?float" Variant:identif_keyword_var Line:1
+Token:"?int" Variant:identif_keyword_var Line:2
+Token:"?string" Variant:identif_keyword_var Line:3
 Token:"" Variant:end_prg_var Line:4
