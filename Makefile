@@ -35,5 +35,8 @@ ${SCANNER-TEST-NAME}: ${LIB-OBJS} ${SCANNER-TEST-OBJS}
 run-scanner-tests: ${SCANNER-TEST-NAME}
 	src/test-skript.sh
 
+run-symtable-tests: $(SYMTABLE-TEST-NAME)
+	./symtable-test
+
 clean:
 	rm -f ${ALL-OBJS} ${PROJECT-NAME} ${SCANNER-TEST-NAME} ${SYMTABLE-TEST-NAME}

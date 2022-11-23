@@ -128,12 +128,12 @@ void bst_replace_by_rightmost(bst_node_t *target, bst_node_t **tree) {
 	if((*tree)->right == NULL)
 	{
 		bst_node_t *tbd = (*tree);
+        free(target->key);
+        free(target->data_type);
 		target->key = tbd->key;
 		target->sym_var = tbd->sym_var;
         target->data_type = tbd->data_type;
 		(*tree) = tbd->left;
-        free(tbd->key);
-        free(tbd->data_type);
 		free(tbd);
 		return;
 	}
@@ -143,10 +143,12 @@ void bst_replace_by_rightmost(bst_node_t *target, bst_node_t **tree) {
 	}else
 	{
 		bst_node_t *tbd = (*tree)->right;
+        free(target->key);
+        free(target->data_type);
 		target->key = tbd->key;
+		target->sym_var = tbd->sym_var;
+        target->data_type = tbd->data_type;
 		(*tree)->right = tbd->left;
-        free(tbd->key);
-        free(tbd->data_type);
 		free(tbd);
 	}
 }
