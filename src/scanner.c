@@ -8,7 +8,6 @@ const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 static char buffer[5];
-static int decimal = 0;
 static int string_buffer_count = 0;
 
 /*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
@@ -248,14 +247,20 @@ scanner_state_t identif_logic(int input, token_t *token)
 					break;
 				}
 			}
-			if(is_keyword == false)
+			if(is_keyword == true)
 			{
-				printf("Error: in function identif_logic: expected keyword instead of '%s'\n", token->content);
-				token->variant = err_var;
-				return default_s;
+				token->variant = identif_keyword_var;
+			}
+			else
+			{
+				token->variant = identif_function_var;
 			}
 		}
-		token->variant = identif_var;
+		else
+		{
+			token->variant = identif_variable_var;
+		}
+		//should run always
 		ungetc(input, stdin);
 		return default_s;
 	}
@@ -333,25 +338,37 @@ scanner_state_t default_logic(int input, token_t *token)
 	switch(cmp)
 	{
 		case '/':
+			getc(stdin);
 			return div_oper_s;
 		case '+':
 		case '-':
-		case '*':
 			return num_oper_s;
+		case '*':
+			return num_oper_adv_s;
 		case '.':
 			return oper_conc_s;
 		case '!':
+			getc(stdin);
 			return not_eq1_s;
 		case '=':
+			getc(stdin);
 			return eq_or_assign_s;
 		case '>':
+			getc(stdin);
 			return grt_s;
 		case '<':
+			getc(stdin);
 			return less_s;
 		case '(':
 			return open_rnd_s;
 		case ')':
 			return cls_rnd_s;
+		case ',':
+			getc(stdin);
+			return comma_s;
+		case ':':
+			getc(stdin);
+			return colon_s;
 		case '{':
 			return open_curl_s;
 		case ';':
@@ -359,6 +376,7 @@ scanner_state_t default_logic(int input, token_t *token)
 		case '}':
 			return cls_curl_s;
 		case '"':
+            getc(stdin);
 			return string_lit_s;
 		case '_' :
 		case '$' :
@@ -426,6 +444,88 @@ void string_buffer(token_t token, int *input) {
 
 }
 
+bool oct_sequence(int input, token_t *token) {
+	char position1 = input; //musi byt 0-3, jinak se nedostane do stavu oct_sequence
+	char position2 = getc(stdin);
+	char position3 = getc(stdin);
+	int result = 0;
+
+	//kontrola jestli jsou position2 a position3 validni oct cisla
+	if((strchr("01234567", position2) != NULL) && (strchr("01234567", position3) != NULL)) {
+		//vypocet indexu, position1 * 8^2 + position2 * 8^1 + position3 * 8^0
+		//48 je rozdil mezi ASCII hodnotou znaku a pozadovaneho cisla
+        result += (position1 - 48) * pow(8, 2);
+		result += (position2 - 48) * pow(8, 1);
+		result += (position3 - 48) * pow(8, 0);
+
+		if(inf_char_input(result, token) != 0)
+			return -1;
+
+		return true;
+	}
+	else {
+		//v pripade nevalidniho znaku vrati znaky na stdin
+		ungetc(position3, stdin);
+		ungetc(position2, stdin);
+		return false;
+	}
+}
+
+bool hex_sequence(int input, token_t *token) {
+
+	//Vstup do funkce kdyz nalezne "\x", pokud je input a jeho nasledujici
+	//prvek validni hex charakter, ulozi hodnotu do tokenu a vrati true, 
+	//jinak vrati false a input se ulozi do tokenu bez prevedeni
+	char position1 = input;
+	char position2 = getc(stdin);
+	int result = 0;
+
+	//Kontrola jestli je druhy position2 validni hex znak, position1
+	//je zkontrolovano pri vstupu do funkce
+	if (strchr("0123456789aAbBcCdDeEfF", position2) != NULL) {
+
+		//Vypocet prvniho indexu
+		//48, 55 a 87 jsou rozdily mezi ASCII kodem znaku a int 
+		//reprezentujici pozadovane cislo
+		if(position1 >= '0' && position1 <= '9') {
+        	result += (position1 - 48) * pow(16, 1);
+    	}
+    	else if(position1 >= 'A' && position1 <= 'F') {
+        	result += (position1 - 55) * pow(16, 1);
+   		}
+    	else if(position1 >= 'a' && position1 <= 'f') {
+        	result += (position1 - 87) * pow(16, 1);
+    	}
+
+		//Vypocet druheho indexu
+		if(position2 >= '0' && position2 <= '9') {
+        	result += (position2 - 48) * pow(16, 0);
+    	}
+    	else if(position2 >= 'A' && position2 <= 'F') {
+        	result += (position2 - 55) * pow(16, 0);
+   		}
+    	else if(position2 >= 'a' && position2 <= 'f') {
+        	result += (position2 - 87) * pow(16, 0);
+    	}
+
+		if(inf_char_input(result, token) != 0)
+			return -1;
+
+		//return true, info pro hex_s aby se neukladalo nic
+		//dalsiho do tokenu
+		return true;
+	}
+	else {
+		//return false a ungetc, hex vlozi input bez uprav do tokenu
+		ungetc(position2, stdin);
+		return false;
+	}
+}
+
+
+//Funkce to_decimal bude nahrazena hex_sequence a oct_sequence
+//V budoucnu SMAZAT, zatim nechavam
+/*
 int to_decimal(char input, int type, int position) {
     int base;
 
@@ -445,6 +545,7 @@ int to_decimal(char input, int type, int position) {
     }
     return decimal;
 }
+*/
 
 /* Funkce implementujici automat ridici lexikalni analyzu
  * input = znak nacteny ze vstupu
@@ -466,127 +567,178 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 fsm_state=com_block_s;
                 break;
             }
-            else 
+            else {
+				ungetc(input,stdin);
                 token->variant=div_oper;
+				fsm_state = default_s;
                 break;
+			}
         case com_oneline_s : 
-           if(input == 'EOL'){
-                token->variant=none;
+           if(input == '\n'){
+				ungetc(input,stdin);
+				token->variant=none;
+				fsm_state = default_s;
                 break;
            }
+		   else if(input == EOF){
+				fsm_state = default_s;
+				ERR_CASE("com_oneline_s");
+				break;
+		   }
             else{
                fsm_state=com_oneline_s;
+			   break;
             }
         case com_block_s : 
             if(input == '*'){
                 fsm_state=com_block_end_s;
                 break;
             }
+			else if(input == EOF){
+				fsm_state = default_s;
+				ERR_CASE("com_block_s");
+				break;
+			}
             else{
                 fsm_state=com_block_s;
                 break;
             }
         case com_block_end_s :
             if(input == '/'){
-                 token->variant=none;
+				 token->variant=none;
+				 fsm_state = default_s;
                  break;
             }
-            fsm_state=com_block_end_s;
-            break;
-           
+			else{
+                fsm_state=com_block_s;
+                break;
+			}
         case num_oper_s :
            token->variant=num_oper_var;
+		   fsm_state = default_s;
+            break;
+		case num_oper_adv_s:
+			token->variant=num_oper_adv_var;
+			fsm_state = default_s;
             break;
         case oper_conc_s :
              token->variant=oper_conc_var;
+			 fsm_state = default_s;
             break;
         case not_eq1_s :
             if(input == '='){
                 fsm_state=not_eq2_s;
                 break;
             }
-            else{
-                ERR_CASE("Invalid characters");
-                break;
-            }
+			ungetc(input,stdin);
+			fsm_state = default_s;
+			ERR_CASE("not_eq1_s");
+            break;
         case not_eq2_s :
             if(input == '='){
                 fsm_state=not_eq3_s;
                 break;
             }
-            else{
-                ERR_CASE("Invalid characters");
-                break;
-            }
+			fsm_state = default_s;
+			ERR_CASE("not_eq2_s");
+            break;
         case not_eq3_s :
+			ungetc(input,stdin);
             token->variant=not_eq_var;
+			fsm_state = default_s;
             break;
         case eq_or_assign_s :
             if(input == '='){
                 fsm_state=eq2_s;
                 break;
             }
-            else{
-                token->variant=eq_or_assign_var;
-                break;
-            }
+			ungetc(input,stdin);
+            token->variant=eq_or_assign_var;
+			fsm_state = default_s;
+            break;
         case eq2_s :
             if(input == '='){
                 fsm_state=eq3_s;
                 break;
             }
-            else{
-                ERR_CASE("Invalid characters");
-                break;
-            }
+			ungetc(input,stdin);
+			fsm_state = default_s;
+            ERR_CASE("eq2_s");
+            break;
+            
         case eq3_s :
+			ungetc(input,stdin);
             token->variant=eq_var;
+			fsm_state = default_s;
             break;
         case grt_s :
             if(input == '='){
+				ungetc(input, stdin);
                 fsm_state=grt_eq_s;
                 break;
             }
-            else{
+            else {
+				ungetc(input, stdin);
                 token->variant=grt_var;
+				fsm_state = default_s;
                 break;
             }
             
         case grt_eq_s :
-            token->variant=grt_eq_var   ;
+            token->variant=grt_eq_var; 
+			fsm_state = default_s;
             break;
         case less_s :
             if(input == '='){
+				ungetc(input, stdin);
                 fsm_state=less_eq_s;
                 break;
             }
             else{
+			   ungetc(input, stdin);
                token->variant=less_var;
+			   fsm_state = default_s;
                break; 
             }
         case less_eq_s :
             token->variant=less_eq_var;
+			fsm_state = default_s;
             break;
         case open_rnd_s :
             token->variant=open_rnd_var;
+			fsm_state = default_s;
             break;
         case cls_rnd_s :
             token->variant=cls_rnd_var;
+			fsm_state = default_s;
             break;
+		case comma_s:
+			token->variant = comma_var;
+			fsm_state = default_s;
+			break;
+		case colon_s:
+			token->variant = colon_var;
+			fsm_state = default_s;
+			break;
         case open_curl_s :
             token->variant=open_curl_var;
+			fsm_state = default_s;
             break;
         case cls_curl_s :
             token->variant=cls_curl_var;
+			fsm_state = default_s;
             break;
         case semicol_s :
             token->variant=semicol_var;
+			fsm_state = default_s;
             break;
         case string_lit_end_s :
             token->variant = string_lit_end_var;
+			token->line_num = 1;
 			fsm_state = default_s;
             break;
         case string_lit_s :
+			//input = getc(stdin);
             if(input == '"') {
                 fsm_state = string_lit_end_s;
                 break;
@@ -594,7 +746,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             else if(input == '\\'){
                 fsm_state = esc_char_s;
             }
-            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') ) { //alfanumericke znaky
+            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') || (input == ' ') ) { //alfanumericke znaky
 				if(inf_char_input(input, token) != 0)
 					return -1;
 			}
@@ -609,39 +761,52 @@ scanner_state_t fsm_step(int input, token_t *token) {
 
 				switch(input)
 				{
+					//Cisla pro input jsou ASCII kody pozadovanych znaku
 					case 'n': 
 						inf_char_input(10, token); //newline
+						fsm_state = string_lit_s;
 						break;
-					case 'r': //????;
+					case 'r':
+						inf_char_input(13, token); //carriage return
+						fsm_state = string_lit_s;
 						break;
 					case 't': 
 						inf_char_input(9, token); //tab
+						fsm_state = string_lit_s;
 						break;
 					case 'v': 
-						inf_char_input(input, token); //WIP
+						inf_char_input(11, token); //vertical tab
+						fsm_state = string_lit_s;
 						break;
 					case 'e': 
-						inf_char_input(input, token); //WIP
+						inf_char_input(27, token); //escape
+						fsm_state = string_lit_s;
 						break;
 					case '\\': 
-						inf_char_input(input, token);
+						inf_char_input(input, token); //backslash
+						fsm_state = string_lit_s;
 						break;
 					case '$': 
-						inf_char_input(input, token); 
+						inf_char_input(input, token); //dollar sign
+						fsm_state = string_lit_s;
 						break;
 				}
                 fsm_state = esc_seq_s;
                 break;
             }
-            else if(strchr("x", input) != NULL) { //hex sequence
+            
+			else if(strchr("x", input) != NULL) { //hex sequence
                 fsm_state = hex1_s;
-                decimal = 0;
+				/* Zde zavolat oct_sequence funkci pro zpracovani cisla */
+                //decimal = 0;
                 break;
             }
             else if(strchr("0123", input) != NULL){ //octal sequence
                 fsm_state = oct1_s;
-                decimal = 0;
-                to_decimal(input, 8, 2);
+				/* Zde zavolat oct_sequence funkci pro zpracovani cisla */
+
+                //decimal = 0;
+                //to_decimal(input, 8, 2);
                 break;
             }
             else {
@@ -649,73 +814,42 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
         case esc_seq_s :
+
+		//Escape sequence content save by mel pro prehled byt az tady, aby v esc_seq_s nemusela
+		//byt volana funkce pro ukladani normalnich znaku, ted tam vsak je jinak to preskoci
+		//vzdy prvni znak po escape sequence
+		//Pripadne asi pujde se stavu esc_seq_s kompletne zbavit
             if(input == '"') {
                 fsm_state = string_lit_end_s;
                 break;
             }
             else {
-                fsm_state = string_lit_s;
-                break;
-            }
-        case hex1_s :
-            if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
-                //to_decimal(input, 16, 1);
-                fsm_state = hex2_s;
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
-        case hex2_s :
-             if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("123456789aAbBcCdDeEfF", input) != NULL) {
-                fsm_state = string_lit_s;
-				to_decimal(input, 16, 0);
-				if(inf_char_input(decimal, token) != 0)
+				if(inf_char_input(input, token) != 0)
 					return -1;
-				printf("%d\n", decimal);
-                break;
-            }
-            else {
                 fsm_state = string_lit_s;
                 break;
             }
+
+		//TODO - Dokoncit prevedeni na HEX a OCT sequence funkce
+        case hex1_s :
+        
+            //if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
+				//Pokud to neni valid hex sekvence, nacte momentalni znak
+				//a prepne se do stavu string_lit_s
+            if(hex_sequence(input, token) == false){	
+					inf_char_input(input, token);
+			}
+			fsm_state = string_lit_s;
+            break;
+            //}
+           
         case oct1_s :
-            if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("01234567", input) != NULL) {
-                to_decimal(input, 8, 1);
-                fsm_state = oct2_s;
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
-        case oct2_s :
-            if(input == '"') {
-                fsm_state = string_lit_end_s;
-                break;
-            }
-            else if (strchr("01234567", input) != NULL) {
-                printf("%d\n", to_decimal(input, 8, 0));
-                fsm_state = string_lit_s;
-                break;
-            }
-            else {
-                fsm_state = string_lit_s;
-                break;
-            }
+			if(oct_sequence(input, token) == false){
+				inf_char_input(input, token);
+			}
+			fsm_state = string_lit_s;
+			break;
+	
         case integ_s :
 			fsm_state = integ_logic(input, token);
             break;

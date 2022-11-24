@@ -1,0 +1,14 @@
+HOTOVO: Upravit tabulku symbolu, predelat vsecky funkce, aby odpovidaly novemu slozeni uzlu v symtab.h souboru.
+
+HOTOVO: Navrhnout precedencni tabulku.
+
+Naprogramovat zasobnik pro analyzu zdola nahoru
+
+Udelat testy na zasobnik
+
+Naprogramovat analyzu zdola nahoru - vyresit predavani tokenu, atd.
+
+Naprogramovat kostru rekurzivniho sestupu
+    -> vyresit jak se budou predavat tokeny -> rozhodovani se na zaklade dalsiho tokenu, nutne jej hodit do prislusne funkce
+
+Vyresit predavani rizeni Top-bottom <-> Bottom-top

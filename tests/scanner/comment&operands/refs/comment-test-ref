@@ -1,0 +1,7 @@
+Token:"" Variant:num_oper_var Line:1
+Token:"" Variant:div_oper Line:1
+Token:"" Variant:num_oper_var Line:1
+Token:"" Variant:num_oper_var Line:2
+Error: in function com_block_s: unexpected EOF at line 0
+Token:"" Variant:err_var Line:2
+Token:"" Variant:end_prg_var Line:2
