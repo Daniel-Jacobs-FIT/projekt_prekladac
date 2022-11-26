@@ -1,0 +1,7 @@
+Token:"[]{}()<>" Variant:string_lit_end_var Line:1
+Token:";:'|" Variant:string_lit_end_var Line:2
+Token:",./?" Variant:string_lit_end_var Line:3
+Token:"/*-+" Variant:string_lit_end_var Line:4
+Token:"!@#$%" Variant:string_lit_end_var Line:5
+Token:"^&`~_" Variant:string_lit_end_var Line:6
+Token:"" Variant:end_prg_var Line:7
