@@ -896,20 +896,20 @@ scanner_state_t fsm_step(int input, token_t *token) {
 /* Funkce pro parser, na pozadani cte vstup, dokud neprecte dost informaci
  * pro vytvoreni tokenu, ktery vraci
  * */
-token_t get_token() {
+token_t *get_token() {
     int input_char = getc(stdin);
     static int line_counter = 1;
 
     if(input_char == '\n') ++line_counter; 
 
-    token_t current_token = create_token(NULL, none, 0);
+    token_t *current_token = create_token(NULL, none, 0);
 	ungetc(input_char, stdin);
-    while(current_token.variant == none) {
+    while(current_token->variant == none) {
         input_char = getc(stdin);
-        fsm_step(input_char, &current_token);
+        fsm_step(input_char, current_token);
     }
 
-    current_token.line_num = line_counter;
+    current_token->line_num = line_counter;
     return current_token;
 }
 
@@ -921,11 +921,11 @@ token_t get_token() {
  * token_var = varianta tokenu
  * linu_num = cislo radku, na kterem byl token nacteny
  * */
-token_t create_token(char* content, token_var variant, int line_num) {
-    token_t token;
-    token.content = content;
-    token.variant = variant;
-    token.line_num = line_num;
+token_t *create_token(char* content, token_var variant, int line_num) {
+    token_t *token = (token_t *)malloc(sizeof(token_t));
+    token->content = content;
+    token->variant = variant;
+    token->line_num = line_num;
     return token;
 }
 
@@ -950,4 +950,5 @@ void free_token(token_t *token) {
     token->content = NULL;
     token->variant = none;
     token->line_num = 0;
+	free(token);
 }
