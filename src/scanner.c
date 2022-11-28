@@ -570,7 +570,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
             else {
 				ungetc(input,stdin);
-                token->variant=div_oper;
+                token->variant=div_oper_var;
 				fsm_state = default_s;
                 break;
 			}
@@ -615,15 +615,15 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
 			}
         case add_oper_s :
-           token->variant=add_oper;
+           token->variant=add_oper_var;
 		   fsm_state = default_s;
             break;
 		case sub_oper_s :
-           token->variant=sub_oper;
+           token->variant=sub_oper_var;
 		   fsm_state = default_s;
             break;
 		case mul_oper_s:
-			token->variant=mul_oper;
+			token->variant=mul_oper_var;
 			fsm_state = default_s;
             break;
         case oper_conc_s :
@@ -658,7 +658,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
 			ungetc(input,stdin);
-            token->variant=eq_or_assign_var;
+            token->variant=assign_var;
 			fsm_state = default_s;
             break;
         case eq2_s :
