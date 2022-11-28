@@ -3,6 +3,8 @@
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 GREEN="\033[0;32m"
+IGNOR_CNT=0
+IGNORED=""
 
 SCTEST=tests/scanner
 
@@ -20,8 +22,13 @@ cd ${SCTEST} && for DIR in *; do
                     echo "${BOLD}No Refs Found! Printing STDOUT${NORMAL}"
                     echo "$( ../../../scanner-test < $TEST )"
                 fi
+            else
+                IGNOR_CNT=$((IGNOR_CNT+1))
+                IGNORED="${IGNORED}${TEST} "
             fi
         fi
     done
     cd ..
 done 
+echo "${BOLD}Ignored ${IGNOR_CNT} tests:${NORMAL}"
+echo "${BOLD}${IGNORED}${NORMAL}"
