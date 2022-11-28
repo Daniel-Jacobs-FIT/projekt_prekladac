@@ -8,7 +8,7 @@ SYMTAB-TEST-OBJS=${SRCDIR}/symbtable-tests.o
 SYMTAB-TEST-LIB-OBJS=${SRCDIR}/symbtable.o
 ALL-OBJS=${REL-OBJS} ${SCANNER-TEST-OBJS} ${SYMTAB-TEST-OBJS} ${SYMTAB-TEST-LIB-OBJS}
 
-CFLAGS=-Wall -Wextra -Wpedantic -g -lm
+CFLAGS=-Wall -Wextra -Wpedantic -g
 CC=gcc
 PROJECT-NAME=ifj22compiler
 SCANNER-TEST-NAME=scanner-test
