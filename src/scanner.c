@@ -5,8 +5,8 @@
 
 const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
-const int KEYWORD_COUNT = 13;
-const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
+const int KEYWORD_COUNT = 12;
+const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "return", "string", "?string", "void", "while"};
 static char buffer[5];
 static int string_buffer_count = 0;
 
@@ -253,7 +253,11 @@ scanner_state_t identif_logic(int input, token_t *token)
 			}
 			else
 			{
-				token->variant = identif_function_var;
+                if(strcmp(token->content, "null") == 0) { //zpracovani null - muze se vyskytovat ve vyrazu
+                    token->variant = null_var;
+                } else {
+				    token->variant = identif_function_var;
+                }
 			}
 		}
 		else
