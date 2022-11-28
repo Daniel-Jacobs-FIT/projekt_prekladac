@@ -9,6 +9,7 @@ const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 static char buffer[5];
 static int string_buffer_count = 0;
+static int line_counter = 1;
 
 /*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
 #define ERR_CASE(NAME)\
@@ -576,6 +577,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			}
         case com_oneline_s : 
            if(input == '\n'){
+				++line_counter;
 				ungetc(input,stdin);
 				token->variant=none;
 				fsm_state = default_s;
@@ -600,16 +602,26 @@ scanner_state_t fsm_step(int input, token_t *token) {
 				ERR_CASE("com_block_s");
 				break;
 			}
+			else if(input == '\n'){
+				++line_counter;
+				fsm_state=com_block_s;
+                break;
+			}
             else{
                 fsm_state=com_block_s;
                 break;
             }
         case com_block_end_s :
             if(input == '/'){
-				 token->variant=none;
-				 fsm_state = default_s;
-                 break;
+				token->variant=com_block;
+				fsm_state = default_s;
+                break;
             }
+			else if(input == '\n'){
+				++line_counter;
+				fsm_state=com_block_s;
+                break;
+			}
 			else{
                 fsm_state=com_block_s;
                 break;
@@ -898,7 +910,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
  * */
 token_t *get_token() {
     int input_char = getc(stdin);
-    static int line_counter = 1;
+    
 
     if(input_char == '\n') ++line_counter; 
 

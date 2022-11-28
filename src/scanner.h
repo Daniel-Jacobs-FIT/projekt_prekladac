@@ -31,7 +31,7 @@ typedef enum {none, div_oper, add_oper,sub_oper,mul_oper, oper_conc_var,\
                 cls_curl_var, semicol_var, string_lit_end_var,\
                 integ_var, float_dot_num_var, float_e_num_var,\
                 identif_variable_var, identif_function_var, identif_keyword_var,\
-				end_prg_var, err_var, comma_var, colon_var\
+				end_prg_var, err_var, comma_var, colon_var, com_block\
 } token_var; //TODO - mozne zjednoduseni, scanneru je lhostejna varianta reprezentace floatu, ...
 /* Makro pro print_token, mapovani enumu na jejich jmena pro lepsi citelnost pri debuggovani
  * */
@@ -43,7 +43,7 @@ typedef enum {none, div_oper, add_oper,sub_oper,mul_oper, oper_conc_var,\
     "cls_curl_var", "semicol_var", "string_lit_end_var", \
     "integ_var", "float_dot_num_var", "float_e_num_var", \
     "identif_variable_var", "identif_function_var", "identif_keyword_var",\
-	"end_prg_var", "err_var", "comma_var", "colon_var"
+	"end_prg_var", "err_var", "comma_var", "colon_var", "com_block"
 
 /* Struktura predstavujici token
  * content = obsah tokenu (nactene symboly)
