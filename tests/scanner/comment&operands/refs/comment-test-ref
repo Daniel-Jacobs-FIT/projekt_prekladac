@@ -2,5 +2,6 @@ Token:"" Variant:add_oper Line:2
 Token:"" Variant:div_oper Line:2
 Token:"" Variant:sub_oper Line:2
 Token:"" Variant:add_oper Line:3
-Token:"" Variant:sub_oper Line:7
-Token:"" Variant:end_prg_var Line:7
+Error: in function com_block_s: unexpected EOF at line 8
+Token:"" Variant:err_var Line:8
+Token:"" Variant:end_prg_var Line:8

@@ -7,9 +7,6 @@ const char *OPEN_SIGN = "<?php";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
-static char buffer[5];
-static int string_buffer_count = 0;
-static int line_counter = 1;
 
 /*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
 #define ERR_CASE(NAME)\
@@ -427,34 +424,9 @@ bool string_check(char *sign) {
         return false;
     }
 }
-//EDIT: zmena input z char na int, aby byl zachycen EOF
-void string_buffer(token_t token, int *input) {
-
-    //string_buffer_count = (string_buffer_count + 1) % 5;
-    buffer[string_buffer_count % 5] = *input;
-    if((string_buffer_count % 5) == 4) {
-        if(realloc(token.content, sizeof(char) * 5) == NULL)
-		{} //EDIT: oprava gcc warningu -Wempty-body 
-
-        for(int i = 0; i < 5; i++) {
-            printf("%d, %s\n", i, (char *)input);//EDIT: cast na (char *) aby se input vytiskl pres %s
-            token.content[string_buffer_count - 4 + i] = buffer[i];
-        }
-    }
-    
-    string_buffer_count++;
-
-}
 
 void int_input(int result, token_t *token) {
-	/*
-    while(result > 0) {
-        int digit = result % 10;
-		char b = digit + '0';
-		inf_char_input(b, token);
-        result = result / 10;
-    }
-	*/
+
 	char *str = malloc(sizeof(char)*(int)log10(result));
 	sprintf(str, "%d", result);
 	for(unsigned long i = 0; i < strlen(str); i++) {
@@ -541,31 +513,6 @@ bool hex_sequence(int input, token_t *token) {
 	}
 }
 
-
-//Funkce to_decimal bude nahrazena hex_sequence a oct_sequence
-//V budoucnu SMAZAT, zatim nechavam
-/*
-int to_decimal(char input, int type, int position) {
-    int base;
-
-    if(type == 16)
-        base = 16;
-    if(type == 8)
-        base = 8;
-
-    if(input >= '0' && input <= '9') {
-        decimal += (input - 48) * pow(base, position);
-    }
-    else if(input >= 'A' && input <= 'F') {
-        decimal += (input - 55) * pow(base, position);
-    }
-    else if(input >= 'a' && input <= 'f') {
-        decimal += (input - 87) * pow(base, position);
-    }
-    return decimal;
-}
-*/
-
 /* Funkce implementujici automat ridici lexikalni analyzu
  * input = znak nacteny ze vstupu
  * token = token, do ktereho se ma zapsat lexem
@@ -594,17 +541,10 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			}
         case com_oneline_s : 
            if(input == '\n'){
-				++line_counter;
 				ungetc(input,stdin);
-				token->variant=none;
 				fsm_state = default_s;
                 break;
-           }
-		   else if(input == EOF){
-				fsm_state = default_s;
-				ERR_CASE("com_oneline_s");
-				break;
-		   }
+            }
             else{
                fsm_state=com_oneline_s;
 			   break;
@@ -620,7 +560,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
 				break;
 			}
 			else if(input == '\n'){
-				++line_counter;
+                token->line_num++;
 				fsm_state=com_block_s;
                 break;
 			}
@@ -630,12 +570,11 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
         case com_block_end_s :
             if(input == '/'){
-				token->variant=com_block;
 				fsm_state = default_s;
                 break;
             }
 			else if(input == '\n'){
-				++line_counter;
+                token->line_num++;
 				fsm_state=com_block_s;
                 break;
 			}
@@ -938,20 +877,17 @@ scanner_state_t fsm_step(int input, token_t *token) {
  * pro vytvoreni tokenu, ktery vraci
  * */
 token_t *get_token() {
-    int input_char = getc(stdin);
-    
+    int input_char;
+    static int line_counter = 1;
 
-    if(input_char == '\n') ++line_counter; 
-
-    token_t *current_token = create_token(NULL, none, 0);
-	ungetc(input_char, stdin);
+    token_t *current_token = create_token(NULL, none, line_counter);
     while(current_token->variant == none) {
         input_char = getc(stdin);
         fsm_step(input_char, current_token);
     }
 
-	//printf("line: %d -- ", line_counter);
-    current_token->line_num = line_counter;
+    line_counter = current_token->line_num;
+
     return current_token;
 }
 
