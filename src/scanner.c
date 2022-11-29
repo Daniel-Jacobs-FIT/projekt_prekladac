@@ -425,16 +425,6 @@ bool string_check(char *sign) {
     }
 }
 
-void int_input(int result, token_t *token) {
-
-	char *str = malloc(sizeof(char)*(int)log10(result));
-	sprintf(str, "%d", result);
-	for(unsigned long i = 0; i < strlen(str); i++) {
-		//printf("%c ", str[i]);
-		inf_char_input(str[i], token);
-	}
-}
-
 bool oct_sequence(int input, token_t *token) {
 	char position1 = input; //musi byt 0-3, jinak se nedostane do stavu oct_sequence
 	char position2 = getc(stdin);
@@ -450,7 +440,8 @@ bool oct_sequence(int input, token_t *token) {
 		result += (position2 - 48) * pow(8, 1);
 		result += (position3 - 48) * pow(8, 0);
 
-		int_input(result, token);
+		//int_input(result, token);
+        inf_char_input(result, token);
 
 		return true;
 	}
@@ -500,7 +491,8 @@ bool hex_sequence(int input, token_t *token) {
         	result += (position2 - 87) * pow(16, 0);
     	}
 
-		int_input(result, token);
+		//int_input(result, token);
+        inf_char_input(result, token);
 
 		//return true, info pro hex_s aby se neukladalo nic
 		//dalsiho do tokenu
@@ -706,6 +698,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			fsm_state = default_s;
             break;
         case string_lit_end_s :
+            ungetc(input, stdin);
 			token->variant = string_lit_end_var;
 			fsm_state = default_s;
             break;
@@ -720,12 +713,14 @@ scanner_state_t fsm_step(int input, token_t *token) {
             else if(input == '\\'){
                 fsm_state = esc_char_s;
             }
-            else if((input >= 'A' && input <= 'Z') || (input >= 'a' && input <= 'z') || (input >= '0' && input <= '9') || (input == ' ') ) { //alfanumericke znaky
-				if(inf_char_input(input, token) != 0)
-					return -1;
-			}
 			else {
-				//ERR_CASE("Invalid characters");
+                if(input == '\n') {
+                    token->line_num++;
+                }
+                else if(input < 31) {
+				    ERR_CASE("Invalid characters");
+                    break;
+                }
 				if(inf_char_input(input, token) != 0)
 					return -1;
 			} 	
@@ -764,6 +759,11 @@ scanner_state_t fsm_step(int input, token_t *token) {
 						break;
 					case '$': 
 						inf_char_input(input, token); //dollar sign
+						fsm_state = string_lit_s;
+						break;
+					case '"': 
+						inf_char_input('\\', token); //uvozovky
+						inf_char_input('"', token); //uvozovky
 						fsm_state = string_lit_s;
 						break;
 					default:
