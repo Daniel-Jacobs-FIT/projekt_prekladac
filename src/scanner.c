@@ -445,6 +445,23 @@ void string_buffer(token_t token, int *input) {
 
 }
 
+void int_input(int result, token_t *token) {
+	/*
+    while(result > 0) {
+        int digit = result % 10;
+		char b = digit + '0';
+		inf_char_input(b, token);
+        result = result / 10;
+    }
+	*/
+	char *str = malloc(sizeof(char)*(int)log10(result));
+	sprintf(str, "%d", result);
+	for(unsigned long i = 0; i < strlen(str); i++) {
+		//printf("%c ", str[i]);
+		inf_char_input(str[i], token);
+	}
+}
+
 bool oct_sequence(int input, token_t *token) {
 	char position1 = input; //musi byt 0-3, jinak se nedostane do stavu oct_sequence
 	char position2 = getc(stdin);
@@ -453,14 +470,14 @@ bool oct_sequence(int input, token_t *token) {
 
 	//kontrola jestli jsou position2 a position3 validni oct cisla
 	if((strchr("01234567", position2) != NULL) && (strchr("01234567", position3) != NULL)) {
+
 		//vypocet indexu, position1 * 8^2 + position2 * 8^1 + position3 * 8^0
 		//48 je rozdil mezi ASCII hodnotou znaku a pozadovaneho cisla
         result += (position1 - 48) * pow(8, 2);
 		result += (position2 - 48) * pow(8, 1);
 		result += (position3 - 48) * pow(8, 0);
 
-		if(inf_char_input(result, token) != 0)
-			return -1;
+		int_input(result, token);
 
 		return true;
 	}
@@ -468,6 +485,7 @@ bool oct_sequence(int input, token_t *token) {
 		//v pripade nevalidniho znaku vrati znaky na stdin
 		ungetc(position3, stdin);
 		ungetc(position2, stdin);
+		inf_char_input('\\', token);
 		return false;
 	}
 }
@@ -509,8 +527,7 @@ bool hex_sequence(int input, token_t *token) {
         	result += (position2 - 87) * pow(16, 0);
     	}
 
-		if(inf_char_input(result, token) != 0)
-			return -1;
+		int_input(result, token);
 
 		//return true, info pro hex_s aby se neukladalo nic
 		//dalsiho do tokenu
@@ -738,12 +755,13 @@ scanner_state_t fsm_step(int input, token_t *token) {
 			fsm_state = default_s;
             break;
         case string_lit_end_s :
-            token->variant = string_lit_end_var;
-			token->line_num = 1;
+			token->variant = string_lit_end_var;
 			fsm_state = default_s;
             break;
         case string_lit_s :
 			//input = getc(stdin);
+
+
             if(input == '"') {
                 fsm_state = string_lit_end_s;
                 break;
@@ -756,7 +774,9 @@ scanner_state_t fsm_step(int input, token_t *token) {
 					return -1;
 			}
 			else {
-				ERR_CASE("Invalid characters");
+				//ERR_CASE("Invalid characters");
+				if(inf_char_input(input, token) != 0)
+					return -1;
 			} 	
             break;
             
@@ -795,6 +815,11 @@ scanner_state_t fsm_step(int input, token_t *token) {
 						inf_char_input(input, token); //dollar sign
 						fsm_state = string_lit_s;
 						break;
+					default:
+						ungetc(input, stdin);
+						fsm_state = string_lit_s;
+
+
 				}
                 fsm_state = esc_seq_s;
                 break;
@@ -807,7 +832,12 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else if(strchr("0123", input) != NULL){ //octal sequence
-                fsm_state = oct1_s;
+
+				if(oct_sequence(input, token) == false){
+					inf_char_input(input, token);
+				}
+				fsm_state = string_lit_s;
+                //fsm_state = oct1_s;
 				/* Zde zavolat oct_sequence funkci pro zpracovani cisla */
 
                 //decimal = 0;
@@ -815,6 +845,7 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else {
+
                 fsm_state = string_lit_s;
                 break;
             }
@@ -842,17 +873,15 @@ scanner_state_t fsm_step(int input, token_t *token) {
 				//Pokud to neni valid hex sekvence, nacte momentalni znak
 				//a prepne se do stavu string_lit_s
             if(hex_sequence(input, token) == false){	
+
+					inf_char_input('\\', token);
+					inf_char_input('x', token);
 					inf_char_input(input, token);
 			}
 			fsm_state = string_lit_s;
             break;
-            //}
            
-        case oct1_s :
-			if(oct_sequence(input, token) == false){
-				inf_char_input(input, token);
-			}
-			fsm_state = string_lit_s;
+        case oct1_s : //DELETE THIS
 			break;
 	
         case integ_s :
@@ -909,6 +938,7 @@ token_t *get_token() {
         fsm_step(input_char, current_token);
     }
 
+	//printf("line: %d -- ", line_counter);
     current_token->line_num = line_counter;
     return current_token;
 }
