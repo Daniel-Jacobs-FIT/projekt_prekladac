@@ -26,9 +26,12 @@ void print_table(const prec_table_t table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS])
 }
 
 int main() {
-    printf("Table for assignments:\n");
-    print_table(ass_table);
-    printf("Table for conditions:\n");
-    print_table(cond_table);
-    return 0;
+	token_t *token = (token_t *)malloc(sizeof(token_t));
+	if(token == NULL)
+	{
+		fprintf(stderr, "malloc fail\n");
+		return 1;
+	}
+	token = create_token("151515.123456789", 5, 15);
+	float_parse(token);
 }

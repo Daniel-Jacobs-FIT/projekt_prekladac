@@ -11,4 +11,7 @@ typedef enum {gr, ls, eq, ER} prec_table_t;
 extern const prec_table_t ass_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS];
 extern const prec_table_t cond_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS];
 
+void float_parse(token_t *);
+void string_parse(token_t *);
+
 #endif
