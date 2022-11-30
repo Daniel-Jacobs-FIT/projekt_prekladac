@@ -6,7 +6,7 @@
 #include "symbtable.h"
 
 typedef enum {gr, ls, eq, ER} prec_table_t;
-#define PREC_TABLE_VARS '>', '<', '=', ' '
+#define PREC_TABLE_VARS '>', '<', '=', 'X'
 
 extern const prec_table_t ass_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS];
 extern const prec_table_t cond_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS];

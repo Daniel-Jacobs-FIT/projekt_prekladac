@@ -30,15 +30,16 @@ typedef enum {add_oper_var, sub_oper_var,  oper_conc_var,
                 eq_var, not_eq_var,
                 identif_variable_var,
                 float_e_num_var, float_dot_num_var, integ_var, string_lit_end_var, null_var, //vsechny konstanty v BTP
-                expression_var, //varianta pouzita pouze v BOTUP parseru
+                expression_var,            //varianta pouzita pouze v BOTUP parseru
                 open_rnd_var, cls_rnd_var, //zavorky ve vyrazech
                 semicol_var, cls_curl_var, //ukoncovaci znaky
-                /* ^varianty pouzite nejak platne v precedencni tabulce, 22 jich je */
+                less_prec_var,             //specialni varianta v BOTUP parseru pro analyzu
+                /* ^varianty pouzite nejak platne v precedencni tabulce, 23 jich je */
                 open_curl_var, none, assign_var,
                 identif_function_var, identif_keyword_var,
 				end_prg_var, err_var, comma_var, colon_var
 } token_var; //TODO - mozne zjednoduseni, scanneru je lhostejna varianta reprezentace floatu, ...
-#define NUM_OF_TOKEN_VARS 31 
+#define NUM_OF_TOKEN_VARS 32
 /* Makro pro print_token, mapovani enumu na jejich jmena pro lepsi citelnost pri debuggovani
  * */
 #define ALL_TOKEN_VARS "add_oper_var", "sub_oper_var", "oper_conc_var",\
@@ -49,7 +50,7 @@ typedef enum {add_oper_var, sub_oper_var,  oper_conc_var,
                 "float_e_num_var", "float_dot_num_var", "integ_var", "string_lit_end_var", "null_var",\
                 "expression_var",\
                 "open_rnd_var", "cls_rnd_var",\
-                "semicol_var", "cls_curl_var",\
+                "semicol_var", "cls_curl_var", "less_prec_var",\
                 "open_curl_var", "none", "assign_var",\
                 "identif_function_var", "identif_keyword_var",\
 				"end_prg_var", "err_var", "comma_var", "colon_var"
