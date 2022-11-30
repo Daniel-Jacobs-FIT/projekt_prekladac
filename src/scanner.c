@@ -24,6 +24,18 @@ if(NAME == NULL)\
 	return 1;\
 }
 
+//vytvoreni tokenu s contentem ktery je retezcovy literal
+token_t *create_token_from_lit(char *content, token_var variant, int line_num)
+{
+	token_t *token = (token_t *)malloc(sizeof(token_t));
+	char *token_content = (char *)malloc(strlen(content)+1);
+	strcpy(token_content, content);
+	token->content = token_content;
+	token->line_num = line_num;
+	token->variant = variant;
+	return token;
+}
+
 int inf_char_input(int input, token_t *token)
 {
 	if(token->content == NULL)

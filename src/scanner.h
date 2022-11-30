@@ -78,4 +78,6 @@ void print_token(token_t *token);
 
 void free_token(token_t *token);
 
+token_t *create_token_from_lit(char *, token_var, int);
+
 #endif
