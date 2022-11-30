@@ -41,13 +41,13 @@ STAT -> FCALL ;
 STAT -> RET
 
 RET -> return ;
-RET -> return EXPR ;
+RET -> return EXPR
 
-ASS -> id = EXPR ;
+ASS -> id = EXPR
 ASS -> id = FCALL ;
 
-IF -> if ( EXPR ) { SS else { SS
-CYC -> while ( EXPR ) { SS
+IF -> if ( EXPR SS else { SS
+CYC -> while ( EXPR SS
 
 FDEF -> function f_id ( PL : par_t { SS
 FCALL -> f_id ( TL
@@ -59,3 +59,24 @@ PL -> par_t id, PL
 TL -> )
 TL -> term )
 TL -> term, TL
+
+EXPR -> EXPR + EXPR
+EXPR -> EXPR - EXPR
+EXPR -> EXPR . EXPR
+EXPR -> EXPR * EXPR
+EXPR -> EXPR / EXPR
+EXPR -> EXPR > EXPR
+EXPR -> EXPR >= EXPR
+EXPR -> EXPR < EXPR
+EXPR -> EXPR <= EXPR
+EXPR -> EXPR === EXPR
+EXPR -> EXPR !== EXPR
+
+EXPR -> id
+EXPR -> float
+EXPR -> float_e
+EXPR -> int
+EXPR -> string
+EXPR -> null
+
+EXPR -> ( EXPR )
