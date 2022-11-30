@@ -72,9 +72,32 @@ const prec_table_t cond_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS] = {
         {ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER},
 };
 
-int inf_char_conv(char *str, int input)
+void parse_switch(token_t *token)
 {
-	if(str == NULL)
+	switch(token->variant)
+	{
+		case float_e_num_var:
+		case float_dot_num_var:
+			float_parse(token);
+			break;
+		case integ_var:
+			printf("int@%s\n", token->content);
+			break;
+		case string_lit_end_var:
+			string_parse(token);
+			break;
+		case null_var:
+			printf("nil@nil\n");
+			break;
+		default:
+			printf("invalid token variant in parse_switch\n");
+			break;
+	}
+}
+
+int inf_char_conv(char **str, int input)
+{
+	if((*str) == NULL)
 	{
 		char *content = (char *)malloc(2);
 		if(content == NULL)
@@ -84,12 +107,12 @@ int inf_char_conv(char *str, int input)
 		}
 		content[0] = (char)input;
 		content[1] = '\0';
-		str = content;
+		(*str) = content;
 	}
 	else
 	{
-		int str_size = strlen(str);
-		char *content = (char *)realloc((void *)str, str_size+2);
+		int str_size = strlen((*str));
+		char *content = (char *)realloc((void *)(*str), str_size+2);
 		if(content == NULL)
 		{
 			fprintf(stderr, "failed to allocate memory\n");
@@ -97,7 +120,7 @@ int inf_char_conv(char *str, int input)
 		}
 		content[str_size] = (char)input;
 		content[str_size+1] = '\0';
-		str = content;
+		(*str) = content;
 	}
 	return 0;
 }
@@ -108,29 +131,41 @@ void float_parse(token_t *token)
 	printf("float@%a\n", num);
 }
 
-//token with a string content to a specific type if string that is the put back into the string content
 void string_parse(token_t *token)
 {
 	char *new_str = NULL;
-	//I will need the size of the new string so I can allocate it, but maybe I can just use inf_char_input
-	//and when I get a char that has a value less than 33 then I have to escape it, so Ill go into a sub function where it will be escaped
-	//other special chars include 035, 092
 	for(int i = 0; token->content[i] != '\0'; i++)
 	{
 		if(token->content[i] < 33 ||token->content[i] == 35 ||token->content[i] == 92)
 		{
 			int digit_count = 1, digit = (int)token->content[i];
+			char extra_zero[3];
 			while((digit /= 10) >= 1)
 			{
 				digit_count++;
 			}
-			//use snprintf
-			//+1 for the '\0' char and +1 for the '\' char
+			if(digit_count == 1)
+			{
+				extra_zero[0] = '0';
+				extra_zero[1] = '0';
+				extra_zero[2] = '\0';
+				//pridavame 2 nuly a proto +2
+				digit_count+=2;
+			}
+			
+			if(digit_count == 2)
+			{
+				extra_zero[0] = '0';
+				extra_zero[1] = '\0';
+				//pridavame 1 nulu a proto 1;
+				digit_count += 1;
+			}
+			//+1 pro '\0' char a +1 pro '\' char
 			char *helper_str = (char *)malloc(digit_count+2);
-			snprintf(helper_str, digit_count+2, "\\%d", (int)token->content[i]);
+			snprintf(helper_str, digit_count+2, "\\%s%d", extra_zero,(int)token->content[i]);
 			for(int j = 0; helper_str[j] != '\0'; j++)
 			{
-				if(inf_char_conv(new_str, helper_str[j]) == -1)
+				if(inf_char_conv(&new_str, helper_str[j]) == -1)
 				{
 					return;
 				}
@@ -139,7 +174,7 @@ void string_parse(token_t *token)
 		}
 		else
 		{
-			if(inf_char_conv(new_str, token->content[i]) == -1)
+			if(inf_char_conv(&new_str, token->content[i]) == -1)
 			{
 				return;
 			}
@@ -244,6 +279,7 @@ void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
                             rule_variant = top_of_stack->variant;
                             break;
                         default:
+							break;
                     }
                     if(rule_variant != none) {
                         
