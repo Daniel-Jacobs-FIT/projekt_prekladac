@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include "scanner.h" //potrebne pro ziskani token_var data typu
+#include "scanner.h"
 
 /*
 Implementace stacku, jako dynamickeho pole
