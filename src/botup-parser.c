@@ -72,4 +72,140 @@ const prec_table_t cond_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS] = {
         {ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER},
 };
 
+//current input se meni na zaklade toho, pokud jsme v podmince nebo v prirazeni a na zacatku
+#define GET_CURRENT_INPUT \
+        if(is_start == true && from_top_down != NULL) {\
+            current_input = from_top_down;\
+            is_start = false;\
+        } else {\
+            current_input = get_token();\
+        }
 
+void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
+                        const prec_table_t precedence_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS]) {
+    stack_t *stack = psa_stack_init();
+    token_t *current_input;
+
+    token_t *top_of_stack;
+    token_t *second_from_top;
+    token_t *third_from_top;
+
+    token_var end_token_variant;
+    bool is_start = true;
+    prec_table_t table_cell;
+
+    if(from_top_down != NULL) { //bottom up parser zpracovava vyraz v prirazeni
+        token_t *end_token = create_token(NULL, semicol_var, 0);
+        psa_stack_push(stack, end_token);
+
+        end_token_variant = semicol_var; 
+
+    } else { //bottom up parser zpracovava podminku
+        token_t *end_token = create_token(NULL, open_curl_var, 0);
+        psa_stack_push(stack, end_token);
+
+        /* krome ukoncujiciho znaku musime na zasobnik dat i oteviraci zavorku, aby se zpracovalo ( EXPR ) */
+        token_t *initial_token_on_stack0 = create_token(NULL, less_prec_var, 0);
+        psa_stack_push(stack, initial_token_on_stack0);
+        token_t *initial_token_on_stack1 = create_token(NULL, open_rnd_var, 0);
+        psa_stack_push(stack, initial_token_on_stack1);
+
+        end_token_variant = open_curl_var; 
+    }
+
+    GET_CURRENT_INPUT
+    do {
+        top_of_stack = psa_stack_get_top(stack);
+
+        table_cell = precedence_table[top_of_stack->variant][current_input->variant];
+
+        switch(table_cell) {
+            case eq:
+                psa_stack_push(stack, current_input);
+                GET_CURRENT_INPUT
+                break;
+            case ls:
+                ; //kompilator si stezoval
+                token_t *less_prec_token = create_token(NULL, less_prec_var, 0);
+                psa_stack_push(stack, less_prec_token);
+                psa_stack_push(stack, current_input);
+                GET_CURRENT_INPUT
+                break;
+            case gr:
+                //ziskani nejvrchnejsich tri znaku, aby bylo mozne zjistit shodu s nejakym pravidlem
+                top_of_stack = psa_stack_get_top(stack);
+                second_from_top = psa_stack_get_nth(stack, 1);
+                third_from_top = psa_stack_get_nth(stack, 2);
+                if(top_of_stack->variant == expression_var) {   //mozna shoda s operandovymi pravidly: E -> E op E
+
+                } else if (top_of_stack->variant == cls_rnd_var) {  //mozna shoda se zavorkovym pravidlem
+                    //kontrola shody se zavorkovym pravidlem
+                    if(second_from_top->variant == expression_var && third_from_top->variant == open_rnd_var) {
+
+                    }
+                    
+                    
+                } else { //mozna shoda s prirazovacimi pravidly
+                    token_var rule_variant = none;
+                    switch(top_of_stack->variant) {
+                        case identif_variable_var:
+                            rule_variant = top_of_stack->variant;
+                            break;
+                        case float_e_num_var:
+                            rule_variant = top_of_stack->variant;
+                            break;
+                        case float_dot_num_var:
+                            rule_variant = top_of_stack->variant;
+                            break;
+                        case integ_var:
+                            rule_variant = top_of_stack->variant;
+                            break;
+                        case string_lit_end_var:
+                            rule_variant = top_of_stack->variant;
+                            break;
+                        case null_var:
+                            rule_variant = top_of_stack->variant;
+                            break;
+                        default:
+                    }
+                    if(rule_variant != none) {
+                        
+                    } else {
+                        //nejak zpracuj chybu
+                    }
+                }
+
+                break;
+            case ER: //chyba!!!!
+                //return?
+                break;
+        }
+
+        top_of_stack = psa_stack_get_top(stack);
+        second_from_top = psa_stack_get_nth(stack, 1);
+
+    } while (current_input->variant != end_token_variant || top_of_stack->variant != expression_var || second_from_top->variant != end_token_variant);
+}
+
+/*
+Funkce pro generovani nahodneho jmena, zatim neobsazeneho v tabulce symbolu, pomocne promenne pro vyrazy.
+Nahodne, abychom snizili sanci degenerace stromu, jimz je
+reprezentovana tabulka symbolu.
+Vraci dynamicky alokovany string "_expressionDDD", kde D je cislo 0-9
+*/
+char *get_rand_var_name(bst_node_t **symb_table) {
+    char beginning[] = "_expression";
+    char *rand_name;
+    do {
+        int suffix = abs(rand() % 1000);
+        char suffix_as_str[4];
+        snprintf(suffix_as_str, 4 * sizeof(char), "%d", suffix);
+
+        rand_name = (char *)calloc(strlen(beginning) + 4, sizeof(char));
+        strcpy(rand_name, beginning);
+        strcat(rand_name, suffix_as_str);
+    } while (bst_search(*symb_table, rand_name) != NULL);
+    //kontrola zda-li neni uz v tabulce symbolu nejaka promenna se stejnym jmenem
+
+    return rand_name;
+}
