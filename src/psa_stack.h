@@ -12,13 +12,26 @@ Pamet je alokovana pres *start
 Na zacatku start = top, ukazuji na ukoncovaci element ";"
 */
 typedef struct {
-    token_var *start; 
-    token_var *top;
+	token_t **arr;
+    int top;
 } stack_t;
-
 /*
 Velikost pole lze ziskat ze vzorce: size = (top - start)/sizeof(token_var) + 1
 Neni tedy nutne ji ukladat do struktury
 */
+
+stack_t *psa_stack_init();
+
+bool psa_stack_is_empty(stack_t *);
+
+token_t *psa_stack_get_nth(stack_t *, int);
+
+token_t *psa_stack_get_top(stack_t *);
+
+int psa_stack_push(stack_t *, token_t *);
+
+int psa_stack_pop(stack_t *);
+
+void psa_stack_dispose(stack_t *);
 
 #endif

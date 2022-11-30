@@ -3,3 +3,4 @@ git*
 *.o
 ifj22compiler
 scanner-test
+psa_stack-test
