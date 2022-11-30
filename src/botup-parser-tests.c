@@ -25,6 +25,29 @@ void print_table(const prec_table_t table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS])
     return;
 }
 
+void test_rand_names() {
+    bst_node_t *symbol_table;
+    bst_init(&symbol_table);
+
+    char *rand_name1 = get_rand_var_name(&symbol_table);
+    char *rand_name2 = get_rand_var_name(&symbol_table);
+    char *rand_name3 = get_rand_var_name(&symbol_table);
+    char *rand_name4 = get_rand_var_name(&symbol_table);
+
+    printf("Random variable names:\n%s\n%s\n%s\n%s\n",
+        rand_name1,
+        rand_name2,
+        rand_name3,
+        rand_name4);
+
+    free(rand_name1);
+    free(rand_name2);
+    free(rand_name3);
+    free(rand_name4);
+    bst_dispose(&symbol_table);
+    return;
+}
+
 int main() {
 	token_t *token = (token_t *)malloc(sizeof(token_t));
 	if(token == NULL)
@@ -34,4 +57,7 @@ int main() {
 	}
 	token = create_token("151515.123456789", 5, 15);
 	float_parse(token);
+    test_rand_names();
+
+    return 0;
 }
