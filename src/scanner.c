@@ -927,8 +927,12 @@ void print_token(token_t *token) {
  * token = ukazatel na token, ktery se ma  uvolnit
  * */
 void free_token(token_t *token) {
-    free(token->content);
-    token->content = NULL;
+
+    if (token->content != NULL) { //content bude uvolnen pouze, pokud neni null
+        free(token->content);
+        token->content = NULL;
+    }
+
     token->variant = none;
     token->line_num = 0;
 	free(token);
