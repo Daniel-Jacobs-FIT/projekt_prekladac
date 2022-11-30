@@ -37,7 +37,7 @@ SS -> }
 STAT -> ASS
 STAT -> IF
 STAT -> CYC
-STAT -> FCALL
+STAT -> FCALL ;
 STAT -> RET
 
 RET -> return ;

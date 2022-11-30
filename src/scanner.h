@@ -24,26 +24,36 @@ typedef enum {default_s, div_oper_s, com_oneline_s,\
 
 /* Enum pro urceni varianty tokenu (je to operator '/' nebo identifikator nebo ...)
  * */
-typedef enum {none, div_oper, add_oper,sub_oper,mul_oper, oper_conc_var,\
-                eq_or_assign_var, eq_var, not_eq_var,\
-                grt_var, grt_eq_var, less_var, less_eq_var,\
-                open_rnd_var, cls_rnd_var, open_curl_var,\
-                cls_curl_var, semicol_var, string_lit_end_var,\
-                integ_var, float_dot_num_var, float_e_num_var,\
-                identif_variable_var, identif_function_var, identif_keyword_var,\
-				end_prg_var, err_var, comma_var, colon_var, com_block\
+typedef enum {add_oper_var, sub_oper_var,  oper_conc_var,
+                mul_oper_var, div_oper_var,
+                grt_var, less_var, less_eq_var, grt_eq_var,
+                eq_var, not_eq_var,
+                identif_variable_var,
+                float_e_num_var, float_dot_num_var, integ_var, string_lit_end_var, null_var, //vsechny konstanty v BTP
+                expression_var,            //varianta pouzita pouze v BOTUP parseru
+                open_rnd_var, cls_rnd_var, //zavorky ve vyrazech
+                semicol_var, cls_curl_var, //ukoncovaci znaky
+                less_prec_var,             //specialni varianta v BOTUP parseru pro analyzu
+                /* ^varianty pouzite nejak platne v precedencni tabulce, 23 jich je */
+                open_curl_var, none, assign_var,
+                identif_function_var, identif_keyword_var,
+				end_prg_var, err_var, comma_var, colon_var
 } token_var; //TODO - mozne zjednoduseni, scanneru je lhostejna varianta reprezentace floatu, ...
+#define NUM_OF_TOKEN_VARS 32
 /* Makro pro print_token, mapovani enumu na jejich jmena pro lepsi citelnost pri debuggovani
  * */
-#define ALL_TOKEN_VARS \
-    "none", "div_oper", "add_oper","sub_oper","mul_oper", "oper_conc_var", \
-    "eq_or_assign_var", "eq_var", "not_eq_var", \
-    "grt_var", "grt_eq_var", "less_var", "less_eq_var", \
-    "open_rnd_var", "cls_rnd_var", "open_curl_var", \
-    "cls_curl_var", "semicol_var", "string_lit_end_var", \
-    "integ_var", "float_dot_num_var", "float_e_num_var", \
-    "identif_variable_var", "identif_function_var", "identif_keyword_var",\
-	"end_prg_var", "err_var", "comma_var", "colon_var", "com_block"
+#define ALL_TOKEN_VARS "add_oper_var", "sub_oper_var", "oper_conc_var",\
+                "mul_oper_var", "div_oper_var",\
+                "grt_var", "less_var", "less_eq_var", "grt_eq_var",\
+                "eq_var", "not_eq_var",\
+                "identif_variable_var",\
+                "float_e_num_var", "float_dot_num_var", "integ_var", "string_lit_end_var", "null_var",\
+                "expression_var",\
+                "open_rnd_var", "cls_rnd_var",\
+                "semicol_var", "cls_curl_var", "less_prec_var",\
+                "open_curl_var", "none", "assign_var",\
+                "identif_function_var", "identif_keyword_var",\
+				"end_prg_var", "err_var", "comma_var", "colon_var"
 
 /* Struktura predstavujici token
  * content = obsah tokenu (nactene symboly)

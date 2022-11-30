@@ -2,4 +2,6 @@
 git*
 *.o
 ifj22compiler
-scanner-test
+psa_stack-tests
+scanner-tests
+symtable-tests
