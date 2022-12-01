@@ -193,7 +193,7 @@ void string_parse(token_t *token)
             current_input = get_token();\
         }
 
-void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
+void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table, bool in_function,
                         const prec_table_t precedence_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS]) {
     stack_t *stack = psa_stack_init();
     token_t *current_input;
@@ -206,6 +206,15 @@ void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
     bool is_start = true;
     prec_table_t table_cell;
 
+    /* nastaveni, do jakeho ramce budou promenne definovany */
+    char frame_name[3];
+    if(in_function == false) {
+        strcpy(frame_name, "GF", 3);
+    } else {
+        strcpy(frame_name, "LF", 3);
+    }
+
+    /* nataveni, co bude na pocatku v zasobniku - u prirazeni ';', u podminek '{)'*/
     if(from_top_down != NULL) { //bottom up parser zpracovava vyraz v prirazeni
         token_t *end_token = create_token(NULL, semicol_var, 0);
         psa_stack_push(stack, end_token);
@@ -219,7 +228,7 @@ void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
         /* krome ukoncujiciho znaku musime na zasobnik dat i oteviraci zavorku, aby se zpracovalo ( EXPR ) */
         token_t *initial_token_on_stack0 = create_token(NULL, less_prec_var, 0);
         psa_stack_push(stack, initial_token_on_stack0);
-        token_t *initial_token_on_stack1 = create_token(NULL, open_rnd_var, 0);
+        token_t *initial_token_on_stack1 = create_token(NULL, cls_rnd_var, 0);
         psa_stack_push(stack, initial_token_on_stack1);
 
         end_token_variant = open_curl_var; 
@@ -244,24 +253,40 @@ void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
                 GET_CURRENT_INPUT
                 break;
             case gr:
+                char *new_data_type;
+                char *new_key;
                 //ziskani nejvrchnejsich tri znaku, aby bylo mozne zjistit shodu s nejakym pravidlem
                 top_of_stack = psa_stack_get_top(stack);
                 second_from_top = psa_stack_get_nth(stack, 1);
                 third_from_top = psa_stack_get_nth(stack, 2);
-                if(top_of_stack->variant == expression_var) {   //mozna shoda s operandovymi pravidly: E -> E op E
-
-                } else if (top_of_stack->variant == cls_rnd_var) {  //mozna shoda se zavorkovym pravidlem
-                    //kontrola shody se zavorkovym pravidlem
-                    if(second_from_top->variant == expression_var && third_from_top->variant == open_rnd_var) {
-
-                    }
-                    
-                    
-                } else { //mozna shoda s prirazovacimi pravidly
+                if(top_of_stack->variant == expression_var &&
+                   third_from_top->variant == expression_var) { //mozna shoda s operandovymi pravidly: E -> E op E
+                    /*
+                    zpracovat operandova pravidla
+                    */
+                } else if 
+                (top_of_stack->variant == cls_rnd_var &&
+                second_from_top->variant == expression_var &&
+                third_from_top->variant == open_rnd_var) {  //jista shoda se zavorkovym pravidlem E -> ( E )
+                    /*
+                    zpracovat zavorkove pravidlo
+                    */
+                } else if
+                (top_of_stack->variant >= 11 && //varianta je enum, toto pokryva vsechny termy a identifikator
+                top_of_stack->variant <= 16)    //shoda s prirazovacimi pravidly pravidly E -> id/...
                     token_var rule_variant = none;
                     switch(top_of_stack->variant) {
                         case identif_variable_var:
-                            rule_variant = top_of_stack->variant;
+                            token_t *from_symb_table = bst_search(symb_table, top_of_stack->content);
+                            if(from_symb_table != NULL && sym_var == var_id) { //kontrola, ze mame platny identifikator z tabulky symbolu
+                                new_data_type; = (char *)calloc(1 + 1, sizeof(char));
+                                new_data_type[0] = from_symb_table->data_type[0];
+                                new_key = get_rand_var_name(symb_table);
+                                bst_insert(symb_table, new_key, var_id, new_data_type); //var_id je enum symbtab_node_t
+                                
+                            } else {
+                                //chyba!
+                            }
                             break;
                         case float_e_num_var:
                             rule_variant = top_of_stack->variant;
@@ -278,13 +303,6 @@ void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table,
                         case null_var:
                             rule_variant = top_of_stack->variant;
                             break;
-                        default:
-							break;
-                    }
-                    if(rule_variant != none) {
-                        
-                    } else {
-                        //nejak zpracuj chybu
                     }
                 }
 
