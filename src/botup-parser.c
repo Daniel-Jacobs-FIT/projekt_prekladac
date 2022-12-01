@@ -184,126 +184,131 @@ void string_parse(token_t *token)
 	token->content = new_str;
 	printf("string@%s\n", token->content);
 }
-//current input se meni na zaklade toho, pokud jsme v podmince nebo v prirazeni a na zacatku
-#define GET_CURRENT_INPUT \
-        if(is_start == true && from_top_down != NULL) {\
-            current_input = from_top_down;\
-            is_start = false;\
-        } else {\
-            current_input = get_token();\
-        }
 
-void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table, bool in_function,
+void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit analyza, vzdy
+                        bst_node_t **symb_table,    //tabulka symbolu, ze ktere se ma cerpat
+                        bool in_function,           //urcuje, zda-li se ma definovat promenne v lokalnim nebo globalnim frameu - LF/GF
+                        bool parsing_assignment,    //urcuje, zda se parsuje prirazeni nebo podminka
                         const prec_table_t precedence_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS]) {
     stack_t *stack = psa_stack_init();
     token_t *current_input;
 
-    token_t *top_of_stack;
-    token_t *second_from_top;
-    token_t *third_from_top;
+    token_t *top_term_of_stack;     //dle tohoto konci analyza, ignoruje tokeny s expression_var
+    token_t *top_token_of_stack;    //pouzite pri ukoncovaci podmince, neignoruje expression
 
-    token_var end_token_variant;
-    bool is_start = true;
+    token_var ending_token;
     prec_table_t table_cell;
 
     /* nastaveni, do jakeho ramce budou promenne definovany */
     char frame_name[3];
     if(in_function == false) {
-        strcpy(frame_name, "GF", 3);
+        strncpy(frame_name, "GF", 3);
     } else {
-        strcpy(frame_name, "LF", 3);
+        strncpy(frame_name, "LF", 3);
     }
 
-    /* nataveni, co bude na pocatku v zasobniku - u prirazeni ';', u podminek '{)'*/
-    if(from_top_down != NULL) { //bottom up parser zpracovava vyraz v prirazeni
+    /* nastavi ukoncovaci varianty tokenu - u prirazeni ';', u podminek '{'*/
+    if(parsing_assignment == true) { //bottom up parser zpracovava vyraz v prirazeni
         token_t *end_token = create_token(NULL, semicol_var, 0);
-        psa_stack_push(stack, end_token);
-
-        end_token_variant = semicol_var; 
-
+        psa_stack_push(stack, end_token);   //na stack se hodi ; jako ukoncovaci znak
+        ending_token = semicol_var;         //analyza konci, kdyz stack_top(term) = ; && vstup = ;
     } else { //bottom up parser zpracovava podminku
         token_t *end_token = create_token(NULL, open_curl_var, 0);
-        psa_stack_push(stack, end_token);
-
-        /* krome ukoncujiciho znaku musime na zasobnik dat i oteviraci zavorku, aby se zpracovalo ( EXPR ) */
-        token_t *initial_token_on_stack0 = create_token(NULL, less_prec_var, 0);
-        psa_stack_push(stack, initial_token_on_stack0);
-        token_t *initial_token_on_stack1 = create_token(NULL, cls_rnd_var, 0);
-        psa_stack_push(stack, initial_token_on_stack1);
-
-        end_token_variant = open_curl_var; 
+        psa_stack_push(stack, end_token);   //na stack se hodi { jako ukoncovaci znak
+        ending_token = open_curl_var;       //analyza konci, kdyz stack_top(term) = { && vstup = {
     }
 
-    GET_CURRENT_INPUT
-    do {
-        top_of_stack = psa_stack_get_top(stack);
+    current_input = from_top_down;  //prvni token je vzdy predan shora
 
-        table_cell = precedence_table[top_of_stack->variant][current_input->variant];
+    do {
+        top_term_of_stack = psa_stack_top_term(stack);
+
+        table_cell = precedence_table[top_term_of_stack->variant][current_input->variant];
 
         switch(table_cell) {
             case eq:
                 psa_stack_push(stack, current_input);
-                GET_CURRENT_INPUT
+                current_input = get_token();
                 break;
             case ls:
-                ; //kompilator si stezoval
-                token_t *less_prec_token = create_token(NULL, less_prec_var, 0);
-                psa_stack_push(stack, less_prec_token);
+                psa_stack_split_top(stack); //zameni term! 'a' na vrcholu zasobniku za 'a<'
                 psa_stack_push(stack, current_input);
-                GET_CURRENT_INPUT
+                current_input = get_token();
                 break;
             case gr:
-                char *new_data_type;
-                char *new_key;
-                //ziskani nejvrchnejsich tri znaku, aby bylo mozne zjistit shodu s nejakym pravidlem
-                top_of_stack = psa_stack_get_top(stack);
-                second_from_top = psa_stack_get_nth(stack, 1);
-                third_from_top = psa_stack_get_nth(stack, 2);
-                if(top_of_stack->variant == expression_var &&
-                   third_from_top->variant == expression_var) { //mozna shoda s operandovymi pravidly: E -> E op E
-                    /*
-                    zpracovat operandova pravidla
-                    */
+                /* snaha najit shodu s nejakym z pravidel */
+                ;
+                token_t *top_of_stack = psa_stack_get_nth(stack, 0);
+                token_t *second_from_top = psa_stack_get_nth(stack, 1);
+                token_t *third_from_top = psa_stack_get_nth(stack, 2);
+                token_t *fourth_from_top = psa_stack_get_nth(stack, 3);
+
+                if (top_of_stack->variant >= 11 && top_of_stack->variant <= 16 &&
+                second_from_top->variant == less_prec_var) {  // E -> id/int/float/str/null
+                    char *new_data_type;
+                    char *new_key;
+                        
+                    /* urceni klice a jmena pro novou pomocnou a jeji vlozeni na zasobnik*/
+                    new_key = get_rand_var_name(symb_table);
+                    new_data_type = (char *)calloc(1 + 1, sizeof(char));
+                    switch(top_of_stack->variant) {
+                        case integ_var:
+                            new_data_type[0] = 'i';
+                            break;
+                        case float_e_num_var:
+                        case float_dot_num_var:
+                            new_data_type[0] = 'f';
+                            break;
+                        case string_lit_end_var:
+                            new_data_type[0] = 's';
+                            break;
+                        case null_var:
+                            new_data_type[0] = 'n';
+                            break;
+                        case identif_variable_var:
+                            ;
+                            bst_node_t *from_symb_table = bst_search(*symb_table, top_of_stack->content);
+                            if(from_symb_table != NULL && from_symb_table->sym_var == var_id) {
+                                new_data_type[0] = from_symb_table->data_type[0];
+                            } else {
+                                fprintf(stdout, "POMOC! PROMENNA NEEXISTUJE V TABULCE SYMBOLU!!!\n");
+                                //chyba, referovana promenna neexistuje, zpracuj
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    bst_insert(symb_table, new_key, var_id, new_data_type); //var_id je enum
+
+                    /* generovani kodu */
+                    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key); 
+                    fprintf(stdout, "MOVE %s@%s ", frame_name, new_key); 
+                    parse_switch(top_of_stack);
+                    /* odstraneni <y ze stacku*/
+                    psa_stack_pop(stack);
+                    psa_stack_pop(stack);
+                    /* zkopirovani new_key do dalsiho stringu, jeden pro tabulku symbolu,
+                     * druhy pro zasobnik, zamezeni double free*/
+                    char *key_for_expr_token = calloc(strlen(new_key) + 1, sizeof(char)); 
+                    strncpy(key_for_expr_token, new_key, strlen(new_key));
+                    psa_stack_push(stack, create_token(key_for_expr_token, expression_var, 0));
                 } else if 
                 (top_of_stack->variant == cls_rnd_var &&
                 second_from_top->variant == expression_var &&
-                third_from_top->variant == open_rnd_var) {  //jista shoda se zavorkovym pravidlem E -> ( E )
+                third_from_top->variant == open_rnd_var &&
+                fourth_from_top->variant == less_prec_var) {  // E -> ( E )
                     /*
                     zpracovat zavorkove pravidlo
                     */
-                } else if
-                (top_of_stack->variant >= 11 && //varianta je enum, toto pokryva vsechny termy a identifikator
-                top_of_stack->variant <= 16)    //shoda s prirazovacimi pravidly pravidly E -> id/...
-                    token_var rule_variant = none;
-                    switch(top_of_stack->variant) {
-                        case identif_variable_var:
-                            token_t *from_symb_table = bst_search(symb_table, top_of_stack->content);
-                            if(from_symb_table != NULL && sym_var == var_id) { //kontrola, ze mame platny identifikator z tabulky symbolu
-                                new_data_type; = (char *)calloc(1 + 1, sizeof(char));
-                                new_data_type[0] = from_symb_table->data_type[0];
-                                new_key = get_rand_var_name(symb_table);
-                                bst_insert(symb_table, new_key, var_id, new_data_type); //var_id je enum symbtab_node_t
-                                
-                            } else {
-                                //chyba!
-                            }
-                            break;
-                        case float_e_num_var:
-                            rule_variant = top_of_stack->variant;
-                            break;
-                        case float_dot_num_var:
-                            rule_variant = top_of_stack->variant;
-                            break;
-                        case integ_var:
-                            rule_variant = top_of_stack->variant;
-                            break;
-                        case string_lit_end_var:
-                            rule_variant = top_of_stack->variant;
-                            break;
-                        case null_var:
-                            rule_variant = top_of_stack->variant;
-                            break;
-                    }
+                    fprintf(stdout, "POMOC! JESTE NEVIM, JAK TOTO PRAVIDLO ZPRACOVAT AAAAAAA\n");
+                } else if(top_of_stack->variant == expression_var &&
+                second_from_top->variant >= 11 && second_from_top->variant <= 16 &&
+                third_from_top->variant == expression_var &&
+                fourth_from_top->variant == less_prec_var) { // E -> E op E
+                    /*
+                    zpracovat operandova pravidla
+                    */
+                    fprintf(stdout, "POMOC! JESTE NEVIM, JAK TOTO PRAVIDLO ZPRACOVAT AAAAAAA\n");
                 }
 
                 break;
@@ -312,10 +317,12 @@ void bottom_up_parser(token_t *from_top_down, bst_node_t **symb_table, bool in_f
                 break;
         }
 
-        top_of_stack = psa_stack_get_top(stack);
-        second_from_top = psa_stack_get_nth(stack, 1);
+    top_token_of_stack = psa_stack_get_nth(stack, 0);
+    top_term_of_stack = psa_stack_top_term(stack);
 
-    } while (current_input->variant != end_token_variant || top_of_stack->variant != expression_var || second_from_top->variant != end_token_variant);
+    } while (current_input->variant != ending_token || top_term_of_stack->variant != ending_token || top_token_of_stack->variant != expression_var);
+
+    //sdelit top_down parseru v jake promenne je ulozen vysledek vyrazu
 }
 
 /*

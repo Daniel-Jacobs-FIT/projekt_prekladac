@@ -55,7 +55,7 @@ void test_rand_names() {
     return;
 }
 
-int main() {
+void test_parse_switch() {
 	token_t *token1 = NULL;
 	token_t *token2 = NULL;
 	token_t *token3 = NULL;
@@ -90,8 +90,13 @@ int main() {
 	parse_switch(token3);
 	
 	FREE_THREE_TOKENS;
+}
 
-	test_rand_names();
+int main() {
+    token_t *first_token = get_token();
+    bst_node_t *table;  //prvni token se vzdy preda shora
+    bst_init(&table);   //prazdna tabulka symbolu
+    bottom_up_parser(first_token, &table, false, true, ass_table);
 
     return 0;
 }
