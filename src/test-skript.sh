@@ -14,7 +14,7 @@ cd ${SCTEST} && for DIR in *; do
             if ! [[ ${TEST} =~ ^@ ]]; then
                 echo "${BOLD}${TEST}:${NORMAL}"
                 if [ -f refs/${TEST}-ref ]; then
-                    diff --color -u refs/${TEST}-ref <(../../../scanner-test < $TEST)
+                    diff --color -u refs/${TEST}-ref <(../../../scanner-tests < $TEST)
                     if [ $? == 0 ]; then
                         printf "\U21b3 ${BOLD}${GREEN}SUCCESS${NORMAL}\n\n"
                     fi

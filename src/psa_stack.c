@@ -1,13 +1,5 @@
 #include "psa_stack.h"
 
-//bad code, figure why its not referenced form scanner.h
-void free_token(token_t *token) {
-    free(token->content);
-    token->content = NULL;
-    token->variant = none;
-    token->line_num = 0;
-	free(token);
-}
 /*
    pri chybe allokaci vraci null
 */

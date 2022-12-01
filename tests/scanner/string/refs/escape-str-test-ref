@@ -2,18 +2,21 @@ Token:"Why
 No
 Exclamation" Variant:string_lit_end_var Line:1
 Token:"Hello
-World!" Variant:string_lit_end_var Line:1
+World!" Variant:string_lit_end_var Line:2
 Token:"
-" Variant:string_lit_end_var Line:2
-Token:"""" Variant:string_lit_end_var Line:3
-Token:"TABS	FOR	DAYS" Variant:string_lit_end_var Line:4
-Token:"	" Variant:string_lit_end_var Line:5
-Token:"need char '\'" Variant:string_lit_end_var Line:6
-Token:"$ <- correct usage" Variant:string_lit_end_var Line:7
-Token:"$" Variant:string_lit_end_var Line:8
-Token:"e <- what" Variant:string_lit_end_var Line:9
-Token:"v <- huh" Variant:string_lit_end_var Line:10
+" Variant:string_lit_end_var Line:3
+Token:"" Variant:string_lit_end_var Line:4
+Token:"" Variant:string_lit_end_var Line:5
+Token:"TABS	FOR	DAYS	" Variant:string_lit_end_var Line:6
+Token:"	" Variant:string_lit_end_var Line:7
+Token:"need char '\'" Variant:string_lit_end_var Line:8
+Token:"\" Variant:string_lit_end_var Line:9
+Token:"''" Variant:string_lit_end_var Line:10
+Token:"$ <- correct usage" Variant:string_lit_end_var Line:11
+Token:"$" Variant:string_lit_end_var Line:12
+Token:"e <- what" Variant:string_lit_end_var Line:13
+Token:"v <- huh" Variant:string_lit_end_var Line:14
 Token:"Multi
 Line
-String" Variant:string_lit_end_var Line:11
-Token:"" Variant:end_prg_var Line:12
+Stirng" Variant:string_lit_end_var Line:17
+Token:"" Variant:end_prg_var Line:18

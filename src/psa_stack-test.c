@@ -2,7 +2,7 @@
 #include "psa_stack.h"
 #include "scanner.h"
 
-const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS};
+const char *TEST_TOKEN_VARS_NAMES[] = {ALL_TOKEN_VARS};
 
 char tokens[][100] = {"123.652e524", "1.596E6", "0008.1e13", "some_key_from_symbol_table", "$Hello_World123", "$cyberPUNK2077", "$el33th4ck3r", "$______no______", "65", "5161465", "121", "1647988498", "00300", "000000000010"};
 
@@ -49,7 +49,7 @@ token_var variants[] = {float_e_num_var, float_e_num_var, float_e_num_var, expre
 
 void psa_print_part(token_t *addr, char *content, token_var variant, int line_num)
 {
-	/* int lenghts[] = {14, strlen(content), strlen(TOKEN_VAR_NAMES[variant]), 6 + digit_count(line_num)}; */
+	/* int lenghts[] = {14, strlen(content), strlen(TEST_TOKEN_VARS_NAMES[variant]), 6 + digit_count(line_num)}; */
 	/* int max_index = max_index(lenghts, 4); */
 	/* int max_size = lenghts[max_index]; */
 	
@@ -69,7 +69,7 @@ void psa_print_part(token_t *addr, char *content, token_var variant, int line_nu
 
 	printf("| %p |\n", (void*)addr);
 	printf("| %s |\n", content);
-	printf("| %s |\n", TOKEN_VAR_NAMES[variant]);
+	printf("| %s |\n", TEST_TOKEN_VARS_NAMES[variant]);
 	printf("| line: %d |\n", line_num);
 	printf("---------------\n");
 }
@@ -119,7 +119,7 @@ int main(void)
 	TEST(stack, "insert one:");
 	print_before(stack);
 	token = create_token_test("Hello World", 5, 15);
-	printf("elem: %s, %s, %d\n", token->content, TOKEN_VAR_NAMES[5], token->line_num);
+	printf("elem: %s, %s, %d\n", token->content, TEST_TOKEN_VARS_NAMES[5], token->line_num);
 	psa_stack_push(stack, token);
 	ENDTEST(stack);
 
@@ -128,7 +128,7 @@ int main(void)
 	for(int i = 0; i < 4; i++)
 	{
 		token = create_token_test(tokens[i], variants[i], i);
-		printf("inserting elem [%s, %s, %d]\n", tokens[i], TOKEN_VAR_NAMES[variants[i]], i);
+		printf("inserting elem [%s, %s, %d]\n", tokens[i], TEST_TOKEN_VARS_NAMES[variants[i]], i);
 		psa_stack_push(stack, token);
 	}
 	ENDTEST(stack);
@@ -140,7 +140,7 @@ int main(void)
 		psa_stack_push(stack, token);
 	}
 	token = psa_stack_get_top(stack);
-	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
+	printf("gotten token: [%s, %s, %d]\n", token->content, TEST_TOKEN_VARS_NAMES[token->variant], token->line_num);
 	ENDTEST(stack);
 
 	TEST(stack, "split top, there is expression:");
@@ -170,7 +170,7 @@ int main(void)
 		psa_stack_push(stack, token);
 	}
 	token = psa_stack_get_nth(stack, 2);
-	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
+	printf("gotten token: [%s, %s, %d]\n", token->content, TEST_TOKEN_VARS_NAMES[token->variant], token->line_num);
 	ENDTEST(stack);
 
 	//get non existant, both ways and empty -1
