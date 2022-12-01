@@ -150,7 +150,7 @@ int main(void)
 		psa_stack_push(stack, token);
 	}
     psa_stack_split_top(stack);
-	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
+	printf("gotten token: [%s, %s, %d]\n", token->content, TEST_TOKEN_VARS_NAMES[token->variant], token->line_num);
 	ENDTEST(stack);
 
 	TEST(stack, "split top, there is no expression:");
@@ -160,7 +160,7 @@ int main(void)
 		psa_stack_push(stack, token);
 	}
     psa_stack_split_top(stack);
-	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
+	printf("gotten token: [%s, %s, %d]\n", token->content, TEST_TOKEN_VARS_NAMES[token->variant], token->line_num);
 	ENDTEST(stack);
 
 	TEST(stack, "get nth (2 from top):");

@@ -95,8 +95,8 @@ int psa_stack_split_top(stack_t *stack) {
     if(psa_stack_get_top(stack) == psa_stack_get_nth(stack, 0)) { //na vrcholu neni expression
         psa_stack_push(stack, less_prec);
     } else { //na vrcholu lezi expression
-		++stack->top;   //pricitame dalsi +1 potoze indexujem od 0 a chceme dalsi prvek
         token_t *expression_on_top = psa_stack_get_nth(stack, 0);
+		++stack->top;   //pricitame dalsi +1 potoze indexujem od 0 a chceme dalsi prvek
 		token_t **arr = (token_t **)realloc(stack->arr, sizeof(token_t *) * (stack->top+1));
 		if(arr == NULL)
 		{
