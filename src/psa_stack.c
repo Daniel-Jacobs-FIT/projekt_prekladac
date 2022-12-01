@@ -31,7 +31,7 @@ bool psa_stack_is_empty(stack_t *stack) {
 /* 
 Vrati hodnotu z vrcholu zasobniku, ignoruje tokeny s variantou expression
 */
-token_t *psa_stack_get_top(stack_t *stack) {
+token_t *psa_stack_top_term(stack_t *stack) {
 	if(psa_stack_is_empty(stack))
 	{
 		//vrati null pokud je stack prazdny
@@ -51,7 +51,7 @@ token_t *psa_stack_get_top(stack_t *stack) {
 /* -
 Vrati hodnotu n-teho elementu of vrchu
 Bude potreba v urcite situaci u precedencni analyzy
-Indexuje se od 0, tzn. psa_stack_get_nth(stack, 0) je to same jako psa_stack_get_top(stack)
+Indexuje se od 0, tzn. psa_stack_get_nth(stack, 0) je to same jako psa_stack_top_term(stack) pokud je na vrcholu terminal
 */
 token_t *psa_stack_get_nth(stack_t *stack, int n) {
 	int index = stack->top - n;
@@ -92,7 +92,7 @@ int psa_stack_push(stack_t *stack, token_t *item) {
 int psa_stack_split_top(stack_t *stack) {
     token_t *less_prec = create_token(NULL, less_prec_var, 0);
 
-    if(psa_stack_get_top(stack) == psa_stack_get_nth(stack, 0)) { //na vrcholu neni expression
+    if(psa_stack_top_term(stack) == psa_stack_get_nth(stack, 0)) { //na vrcholu neni expression
         psa_stack_push(stack, less_prec);
     } else { //na vrcholu lezi expression
         token_t *expression_on_top = psa_stack_get_nth(stack, 0);

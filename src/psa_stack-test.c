@@ -139,7 +139,7 @@ int main(void)
 		token = create_token_test(tokens[i], variants[i], i);
 		psa_stack_push(stack, token);
 	}
-	token = psa_stack_get_top(stack);
+	token = psa_stack_top_term(stack);
 	printf("gotten token: [%s, %s, %d]\n", token->content, TEST_TOKEN_VARS_NAMES[token->variant], token->line_num);
 	ENDTEST(stack);
 
