@@ -4,9 +4,9 @@
 
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS};
 
-char tokens[][100] = {"123.652e524", "1.596E6", "0008.1e13", "$Hello_World123", "$cyberPUNK2077", "$el33th4ck3r", "$______no______", "65", "5161465", "121", "1647988498", "00300", "000000000010"};
+char tokens[][100] = {"123.652e524", "1.596E6", "0008.1e13", "some_key_from_symbol_table", "$Hello_World123", "$cyberPUNK2077", "$el33th4ck3r", "$______no______", "65", "5161465", "121", "1647988498", "00300", "000000000010"};
 
-token_var variants[] = {float_e_num_var, float_e_num_var, float_e_num_var, identif_variable_var, identif_variable_var, identif_variable_var, identif_variable_var, integ_var, integ_var, integ_var, integ_var, integ_var, integ_var};
+token_var variants[] = {float_e_num_var, float_e_num_var, float_e_num_var, expression_var, identif_variable_var, identif_variable_var, identif_variable_var, identif_variable_var, integ_var, integ_var, integ_var, integ_var, integ_var, integ_var};
 
 #define TEST(STACK, DESCRIPTION)\
 {\
@@ -140,6 +140,26 @@ int main(void)
 		psa_stack_push(stack, token);
 	}
 	token = psa_stack_get_top(stack);
+	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
+	ENDTEST(stack);
+
+	TEST(stack, "split top, there is expression:");
+	for(int i = 0; i < 4; i++)
+	{
+		token = create_token_test(tokens[i], variants[i], i);
+		psa_stack_push(stack, token);
+	}
+    psa_stack_split_top(stack);
+	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
+	ENDTEST(stack);
+
+	TEST(stack, "split top, there is no expression:");
+	for(int i = 0; i < 3; i++)
+	{
+		token = create_token_test(tokens[i], variants[i], i);
+		psa_stack_push(stack, token);
+	}
+    psa_stack_split_top(stack);
 	printf("gotten token: [%s, %s, %d]\n", token->content, TOKEN_VAR_NAMES[token->variant], token->line_num);
 	ENDTEST(stack);
 

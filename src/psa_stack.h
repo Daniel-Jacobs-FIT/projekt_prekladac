@@ -28,6 +28,8 @@ token_t *psa_stack_get_nth(stack_t *, int);
 
 token_t *psa_stack_get_top(stack_t *);
 
+int psa_stack_split_top(stack_t* );
+
 int psa_stack_push(stack_t *, token_t *);
 
 int psa_stack_pop(stack_t *);

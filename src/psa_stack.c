@@ -37,7 +37,7 @@ bool psa_stack_is_empty(stack_t *stack) {
 }
 
 /* 
-Vrati hodnotu z vrcholu zasobniku
+Vrati hodnotu z vrcholu zasobniku, ignoruje tokeny s variantou expression
 */
 token_t *psa_stack_get_top(stack_t *stack) {
 	if(psa_stack_is_empty(stack))
@@ -45,7 +45,15 @@ token_t *psa_stack_get_top(stack_t *stack) {
 		//vrati null pokud je stack prazdny
 		return NULL;
 	}
-	return stack->arr[stack->top];
+
+    int i = 0;
+    token_t *top_token;
+    do {
+        top_token = stack->arr[stack->top - i];
+        i++;
+    } while (top_token->variant == expression_var && stack->top - i >= 0);
+
+	return stack->arr[stack->top - (i - 1)]; //i - 1 protoze i je inkrementovano pri poslednim pruchodu cyklem
 }
 
 /* -
@@ -89,6 +97,27 @@ int psa_stack_push(stack_t *stack, token_t *item) {
 	return 1;
 }
 
+int psa_stack_split_top(stack_t *stack) {
+    token_t *less_prec = create_token(NULL, less_prec_var, 0);
+
+    if(psa_stack_get_top(stack) == psa_stack_get_nth(stack, 0)) { //na vrcholu neni expression
+        psa_stack_push(stack, less_prec);
+    } else { //na vrcholu lezi expression
+		++stack->top;   //pricitame dalsi +1 potoze indexujem od 0 a chceme dalsi prvek
+        token_t *expression_on_top = psa_stack_get_nth(stack, 0);
+		token_t **arr = (token_t **)realloc(stack->arr, sizeof(token_t *) * (stack->top+1));
+		if(arr == NULL)
+		{
+			return -1;
+		}
+        
+        stack->arr = arr;
+        stack->arr[stack->top - 1] = less_prec;
+        stack->arr[stack->top] = expression_on_top;
+    }
+    return 1;
+}
+
 /* 
 Provede realokaci (zmenseni(!) zasovnku o 1) a vlozi hodnotu elementu na vrchol zasobniku
 Pri selhani realokace pameti vrati -1
@@ -102,7 +131,7 @@ int psa_stack_pop(stack_t *stack) {
 	else
 	{
 		token_t **arr = NULL;
-		token_t *tbd = psa_stack_get_top(stack);
+		token_t *tbd = psa_stack_get_nth(stack, 0);
 		stack->arr[stack->top] = NULL;
 		--stack->top;
 		if(!(psa_stack_is_empty(stack)))
