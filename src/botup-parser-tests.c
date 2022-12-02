@@ -61,9 +61,9 @@ void test_parse_switch() {
 	token_t *token3 = NULL;
 
 	//float tests
-	token1 = create_token_from_lit("151515.123456789", float_dot_num_var, 15);
-	token2 = create_token_from_lit("1.1254698e+3", float_e_num_var, 16);
-	token3 = create_token_from_lit("1523654.02E-4", float_e_num_var, 17);
+	token1 = create_token_from_lit("151515.123456789", float_var, 15);
+	token2 = create_token_from_lit("1.1254698e+3", float_var, 16);
+	token3 = create_token_from_lit("1523654.02E-4", float_var, 17);
 	
 	parse_switch(token1);
 	parse_switch(token2);
