@@ -4,7 +4,7 @@ NETERMINALY:
     SS = sekvence prikazu
     STAT = prikaz (statement)
     RET = prikaz navratu z funkce nebo hlavniho programu
-    ASS = prikaz - prirazeni (assignment)
+    ASG = prikaz - prirazeni (assignment)
     IF = podmineny prikaz
     CYCL = cyklus typu while
     FDEF = definice funkce (deklarace nejsou)
@@ -34,7 +34,7 @@ SSD -> end
 SS -> STAT SS
 SS -> }
 
-STAT -> ASS
+STAT -> ASG
 STAT -> IF
 STAT -> CYC
 STAT -> FCALL ;
@@ -43,8 +43,8 @@ STAT -> RET
 RET -> return ;
 RET -> return EXPR
 
-ASS -> id = EXPR
-ASS -> id = FCALL ;
+ASG -> id = EXPR
+ASG -> id = FCALL ;
 
 IF -> if ( EXPR SS else { SS
 CYC -> while ( EXPR SS
