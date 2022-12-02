@@ -30,7 +30,7 @@ cd ${TEST_DIR} && for DIR in *; do
                     fi
                 else
                     echo "${BOLD}No Refs Found! Printing STDOUT${NORMAL}"
-                    echo "$( ../../../scanner-test < $TEST )"
+                    echo "$( ../../../${BIN_NAME} < $TEST )"
                 fi
             else
                 IGNOR_CNT=$((IGNOR_CNT+1))

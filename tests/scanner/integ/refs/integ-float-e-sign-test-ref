@@ -1,5 +1,5 @@
-Token:"741e+852" Variant:float_e_num_var Line:1
-Token:"74.1E+963" Variant:float_e_num_var Line:2
-Token:"96.2e-654" Variant:float_e_num_var Line:3
-Token:"000.1E-52" Variant:float_e_num_var Line:4
+Token:"741e+852" Variant:float_var Line:1
+Token:"74.1E+963" Variant:float_var Line:2
+Token:"96.2e-654" Variant:float_var Line:3
+Token:"000.1E-52" Variant:float_var Line:4
 Token:"" Variant:end_prg_var Line:5

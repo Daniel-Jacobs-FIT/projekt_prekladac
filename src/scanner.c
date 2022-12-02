@@ -97,7 +97,7 @@ scanner_state_t float_e_num_logic(int input, token_t *token)
 		return float_e_num_s;
 	}else
 	{
-		token->variant = float_e_num_var;	
+		token->variant = float_var;
 		ungetc(input, stdin);
 		return default_s;
 	}
@@ -172,7 +172,7 @@ scanner_state_t float_dot_num_logic(int input, token_t *token)
 				return float_dot_num_s;
 			}else
 			{
-				token->variant = float_dot_num_var;	
+				token->variant = float_var;
 				ungetc(input, stdin);
 				return default_s;
 			}

@@ -1,4 +1,4 @@
-Token:"1234e6789" Variant:float_e_num_var Line:1
-Token:"33E33" Variant:float_e_num_var Line:2
-Token:"0001e100" Variant:float_e_num_var Line:3
+Token:"1234e6789" Variant:float_var Line:1
+Token:"33E33" Variant:float_var Line:2
+Token:"0001e100" Variant:float_var Line:3
 Token:"" Variant:end_prg_var Line:4
