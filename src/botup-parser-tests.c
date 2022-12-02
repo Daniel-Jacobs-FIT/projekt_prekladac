@@ -96,10 +96,10 @@ int main() {
     bst_node_t *table; 
     bst_init(&table);   //prazdna tabulka symbolu
 
-    token_t *first_token;  //prvni token se vzdy preda shora
-    for(int i = 0; i < 4; i++) {
-        first_token = get_token();
+    token_t *first_token = get_token();
+    do {
         bottom_up_parser(first_token, &table, false, true, ass_table);
-    }
+        first_token = get_token();
+    } while (first_token->variant != end_prg_var);
     return 0;
 }
