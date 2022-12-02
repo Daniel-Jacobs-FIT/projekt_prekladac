@@ -93,10 +93,13 @@ void test_parse_switch() {
 }
 
 int main() {
-    token_t *first_token = get_token();
-    bst_node_t *table;  //prvni token se vzdy preda shora
+    bst_node_t *table; 
     bst_init(&table);   //prazdna tabulka symbolu
-    bottom_up_parser(first_token, &table, false, true, ass_table);
 
+    token_t *first_token;  //prvni token se vzdy preda shora
+    for(int i = 0; i < 4; i++) {
+        first_token = get_token();
+        bottom_up_parser(first_token, &table, false, true, ass_table);
+    }
     return 0;
 }
