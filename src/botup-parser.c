@@ -182,6 +182,142 @@ void string_parse(token_t *token)
 	printf("string@%s\n", token->content);
 }
 
+/* funkce pro zpracovani pravidel E -> E op E pro {+ - * / .}
+ * TODO vraci true pri uspechu a false pri neuspechu*/
+void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
+                                token_var operator, char frame_name[3],
+                                bst_node_t **symb_table, stack_t *stack) {
+    char first_data_type = first_operand->data_type[0];
+    char second_data_type = second_operand->data_type[0];
+    char result_data_type = '?';
+    char opcode[6 + 1] = "";
+    char *new_data_type;
+
+    /* provedeni nezbytnych konverzi a urceni druhu operace*/
+    switch(operator) {
+        case add_oper_var:
+            strcpy(opcode, "ADD");
+        case sub_oper_var:
+            if(strlen(opcode) == 0) {
+                strcpy(opcode, "SUB");
+            }
+        case mul_oper_var:
+            if(first_data_type == 'i') {        // i + ?
+                if(second_data_type == 'f') {
+                    fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n",
+                            frame_name, first_operand->key, frame_name, first_operand->key);
+                    result_data_type = 'f';
+                } else if (second_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, second_operand->key);
+                    result_data_type = 'i';
+                } else {
+                    //TODO: zpracuj chybu
+                }
+            } else if(first_data_type == 'f') {
+                if(second_data_type == 'i') {
+                    fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n",
+                            frame_name, second_operand->key, frame_name, second_operand->key);
+                    result_data_type = 'f';
+                } else if (second_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, second_operand->key);
+                    result_data_type = 'f';
+                } else {
+                    //TODO: zpracuj chybu
+                }
+            } else if(first_data_type == 'n') {
+                if(second_data_type == 'i') {
+                    fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, first_operand->key);
+                    result_data_type = 'i';
+                } else if(second_data_type == 'f') {
+                    fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, first_operand->key);
+                    result_data_type = 'f';
+                } else if(second_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, first_operand->key);
+                    fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, second_operand->key);
+                    result_data_type = 'i';
+                } else {
+                    //TODO: zpracuj chybu
+                }
+            } else {
+                    //TODO: zpracuj chybu
+            }
+
+            if(strlen(opcode) == 0) {
+                strcpy(opcode, "MUL");
+            }
+            break;
+        case div_oper_var:
+            if(first_data_type == 'i') {
+                    fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n",
+                            frame_name, first_operand->key, frame_name, first_operand->key);
+            }
+            if(second_data_type == 'i') {
+                    fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n",
+                            frame_name, second_operand->key, frame_name, second_operand->key);
+            }
+            if(first_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, first_operand->key);
+            }
+            if(second_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, second_operand->key);
+            }
+            if(first_data_type == 's' || first_data_type == 'b' || 
+              second_data_type == 's' || second_data_type == 'b') {
+                    //TODO: zpracuj chybu
+            }
+
+            result_data_type = 'f';
+            strcpy(opcode, "DIV");
+            break;
+        case oper_conc_var:
+            if(first_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s string@\n", frame_name, first_operand->key);
+            }
+            if(second_data_type == 'n') {
+                    fprintf(stdout, "MOVE %s@%s string@\n", frame_name, second_operand->key);
+            }
+            if((first_data_type != 's' && first_data_type != 'n') ||
+              (second_data_type != 's' && second_data_type != 'n')) {
+                    //TODO: zpracuj chybu
+            }
+            strcpy(opcode, "CONCAT");
+            break;
+        default:
+            break;
+    }
+
+    //vygenerovani noveho klice pro promennou s vysledkem operace
+    char *new_expr_name = get_rand_var_name(symb_table);
+    new_data_type = (char *)calloc(1 + 1, sizeof(char));
+    new_data_type[0] = result_data_type;
+
+    //vlozeni nove promenne do tabulky symbolu
+    bst_insert(symb_table, new_expr_name, var_id, new_data_type); //var_id je enum
+
+    //odstraneni < E op E z vrcholu zasobniku
+    psa_stack_pop(stack);
+    psa_stack_pop(stack);
+    psa_stack_pop(stack);
+    psa_stack_pop(stack);
+
+    /* zkopirovani new_data_type do dalsiho stringu, jeden pro tabulku symbolu,
+     * druhy pro zasobnik, zamezeni double free*/
+    char *key_for_expr_token = calloc(strlen(new_expr_name) + 1, sizeof(char)); 
+    strncpy(key_for_expr_token, new_expr_name, strlen(new_expr_name));
+    psa_stack_push(stack, create_token(key_for_expr_token, expression_var, 0));
+
+    //generovani kodu
+    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
+    fprintf(stdout, "%s %s@%s %s@%s %s@%s\n", 
+            opcode,
+            frame_name, new_expr_name,
+            frame_name, first_operand->key,
+            frame_name, second_operand->key);
+    fprintf(stdout, "\n");
+
+    return;
+}
+
 void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit analyza, vzdy
                         bst_node_t **symb_table,    //tabulka symbolu, ze ktere se ma cerpat
                         bool in_function,           //urcuje, zda-li se ma definovat promenne v lokalnim nebo globalnim frameu - LF/GF
@@ -309,17 +445,27 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     /* natlaceni noveho E na zasobnik*/
                     psa_stack_push(stack, create_token(expr_cont_copy, expression_var, 0));
 
-                    //XXX ladici vypis, odstranit pozdeji
-                    //fprintf(stdout, "Redukce <(%s) na %s\n", expr_cont_copy, expr_cont_copy);
-
                 } else if(top_of_stack->variant == expression_var &&
-                second_from_top->variant >= 11 && second_from_top->variant <= 16 &&
+                second_from_top->variant >= add_oper_var && second_from_top->variant <= not_eq_var &&
                 third_from_top->variant == expression_var &&
                 fourth_from_top->variant == less_prec_var) { // E -> E op E
-                    /*
-                    zpracovat operandova pravidla
-                    */
-                    fprintf(stdout, "POMOC! JESTE NEVIM, JAK TOTO PRAVIDLO ZPRACOVAT AAAAAAA\n");
+
+                    bst_node_t *first_operand = bst_search(*symb_table, third_from_top->content);
+                    bst_node_t *second_operand = bst_search(*symb_table, top_of_stack->content);
+
+                    switch(second_from_top->variant) {
+                        case add_oper_var:
+                        case sub_oper_var:
+                        case mul_oper_var:
+                        case div_oper_var:
+                        case oper_conc_var:
+                            parse_numer_and_conc(first_operand, second_operand,
+                                second_from_top->variant, frame_name,
+                                symb_table, stack);
+                            break;
+                        default:
+                            break;
+                    }
                 }
 
                 break;
@@ -334,27 +480,6 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
     } while (current_input->variant != ending_token || top_term_of_stack->variant != ending_token || top_token_of_stack->variant != expression_var);
 
     //sdelit top_down parseru v jake promenne je ulozen vysledek vyrazu
-}
-
-token_t *parse_numer_and_conc(token_t *first_operand, token_t *second_operand, token_var operand,
-                                bst_node_t **symb_table) {
-    token_var first_var = first_operand->variant;
-    token_var second_var = second_operand->variant;
-    /* provedeni nezbytnych konverzi */
-    switch(operand) {
-        case add_oper_var:
-            
-        case sub_oper_var:
-        case mul_oper_var:
-            if()
-            
-            break;
-        case div_oper_var:
-            break;
-        case oper_conc_var:
-            break;
-    }
-    
 }
 
 /*
