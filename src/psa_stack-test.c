@@ -4,6 +4,8 @@
 
 const char *TEST_TOKEN_VARS_NAMES[] = {ALL_TOKEN_VARS};
 
+int GET_NEXT_TOKEN_INDEX = 0;
+
 char tokens[][100] = {"123.652e524", "1.596E6", "0008.1e13", "some_key_from_symbol_table", "$Hello_World123", "$cyberPUNK2077", "$el33th4ck3r", "$______no______", "65", "5161465", "121", "1647988498", "00300", "000000000010"};
 
 token_var variants[] = {float_var, float_var, float_var, expression_var, identif_variable_var, identif_variable_var, identif_variable_var, identif_variable_var, integ_var, integ_var, integ_var, integ_var, integ_var, integ_var};
@@ -200,6 +202,87 @@ int main(void)
 	psa_stack_pop(stack);
 	ENDTEST(stack);
 
-	//dispose empty
-	//dispose 1 elem
+	TEST(stack, "get next empty:\n");
+	for(int i = 0; i < 4; i++)
+	{
+		token = create_token_test(tokens[i], variants[i], i);
+		psa_stack_push(stack, token);
+	}
+	printf("before:\n");
+	psa_print_stack(stack);
+	psa_stack_pop(stack);
+	ENDTEST(stack);
+	
+	TEST(stack, "get first empty:\n");
+	GET_NEXT_TOKEN_INDEX = 0;
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	psa_print_stack(stack);
+	if(token == NULL)
+	{
+		printf("stack is either empty or there is no next token\n");
+	}else
+	{
+		printf("token found at address %p with the content %s\n", (void *)token, token->content);
+	}
+	ENDTEST(stack);
+
+	TEST(stack, "get one:\n");
+	GET_NEXT_TOKEN_INDEX = 0;
+	for(int i = 0; i < 4; i++)
+	{
+		token = create_token_test(tokens[i], variants[i], i);
+		psa_stack_push(stack, token);
+	}
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	psa_print_stack(stack);
+	if(token == NULL)
+	{
+		printf("stack is either empty or there is no next token\n");
+	}else
+	{
+		printf("token found at address %p with the content %s\n", (void *)token, token->content);
+	}
+	ENDTEST(stack);
+	
+	TEST(stack, "get all (no wrap):\n");
+	GET_NEXT_TOKEN_INDEX = 0;
+	for(int i = 0; i < 4; i++)
+	{
+		token = create_token_test(tokens[i], variants[i], i);
+		psa_stack_push(stack, token);
+	}
+	psa_print_stack(stack);
+	for(int i = 0; i < 4; i++)
+	{
+		token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+		if(token == NULL)
+		{
+			printf("stack is either empty or there is no next token\n");
+		}else
+		{
+			printf("token found at address %p with the content %s\n", (void *)token, token->content);
+		}
+	}
+	ENDTEST(stack);
+
+	TEST(stack, "get all (wrap):\n");
+	GET_NEXT_TOKEN_INDEX = 0;
+	for(int i = 0; i < 4; i++)
+	{
+		token = create_token_test(tokens[i], variants[i], i);
+		psa_stack_push(stack, token);
+	}
+	psa_print_stack(stack);
+	for(int i = 0; i < 9; i++)
+	{
+		token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+		if(token == NULL)
+		{
+			printf("stack is either empty or there is no next token\n");
+		}else
+		{
+			printf("token found at address %p with the content %s\n", (void *)token, token->content);
+		}
+	}
+	ENDTEST(stack);
 }

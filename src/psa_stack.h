@@ -26,6 +26,8 @@ bool psa_stack_is_empty(stack_t *);
 
 token_t *psa_stack_get_nth(stack_t *, int);
 
+token_t *psa_stack_get_nth_rev(stack_t *, int);
+
 token_t *psa_stack_top_term(stack_t *);
 
 int psa_stack_split_top(stack_t* );
@@ -35,5 +37,7 @@ int psa_stack_push(stack_t *, token_t *);
 int psa_stack_pop(stack_t *);
 
 void psa_stack_dispose(stack_t *);
+
+token_t *next_stack_token(stack_t *, int *);
 
 #endif

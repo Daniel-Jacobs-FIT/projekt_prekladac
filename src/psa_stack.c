@@ -1,5 +1,24 @@
 #include "psa_stack.h"
 
+//nextIndex zacina na 0
+token_t *next_stack_token(stack_t *stack, int *nextIndex)
+{
+	token_t *token = NULL;
+	if(psa_stack_is_empty(stack))
+	{
+		return NULL;
+	}
+	if(*nextIndex > stack->top)
+	{
+		//index out of bounds
+		//might remove the nextIndex wrap around
+		*nextIndex = 0;
+		return NULL;
+	}
+	token = psa_stack_get_nth_rev(stack, *nextIndex);
+	*nextIndex += 1;
+	return token;
+}
 /*
    pri chybe allokaci vraci null
 */
@@ -64,6 +83,19 @@ token_t *psa_stack_get_nth(stack_t *stack, int n) {
 	return stack->arr[index];
 }
 
+/*
+funguje stejne jako psa_stack_get_nth krome toho ze jede od konce stacku
+*/
+token_t *psa_stack_get_nth_rev(stack_t *stack, int n) {
+	int index = n;
+	if(index > stack->top || index < 0)
+	{
+		//index out of range
+		return NULL;
+	}
+	
+	return stack->arr[index];
+}
 /* 
 Provede realokaci (zvetseni zasovnku o 1) a vlozi hodnotu elementu na vrchol zasobniku
 Pri selhani realokace pameti vrati -1
