@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include "utils.h"
 
 #ifndef SCANNER_H_
 #define SCANNER_H_

@@ -7,11 +7,15 @@ stack_t *psa_stack_init() {
 	stack_t *stack = (stack_t *)malloc(sizeof(stack_t));
 	if(stack == NULL)
 	{
+        fprintf(stderr, "Chyba alokace paměti!\n");
+        EXIT_CODE = 99;
 		return NULL;
 	}
 	stack->arr = (token_t **)malloc(sizeof(token_t *));
 	if(stack->arr == NULL)
 	{
+        fprintf(stderr, "Chyba alokace paměti!\n");
+        EXIT_CODE = 99;
 		free(stack);
 		return NULL;
 	}
@@ -81,6 +85,8 @@ int psa_stack_push(stack_t *stack, token_t *item) {
 		token_t **arr = (token_t **)realloc(stack->arr, sizeof(token_t *) * (stack->top+1));
 		if(arr == NULL)
 		{
+			fprintf(stderr, "Chyba alokace paměti!\n");
+            EXIT_CODE = 99;
 			return -1;
 		}
 		stack->arr = arr;
@@ -100,6 +106,8 @@ int psa_stack_split_top(stack_t *stack) {
 		token_t **arr = (token_t **)realloc(stack->arr, sizeof(token_t *) * (stack->top+1));
 		if(arr == NULL)
 		{
+			fprintf(stderr, "Chyba alokace paměti!\n");
+            EXIT_CODE = 99;
 			return -1;
 		}
         
@@ -131,6 +139,8 @@ int psa_stack_pop(stack_t *stack) {
 			arr = (token_t **)realloc(stack->arr, sizeof(token_t *) * (stack->top+1));
 			if(arr == NULL)
 			{
+                fprintf(stderr, "Chyba alokace paměti!\n");
+                EXIT_CODE = 99;
 				++stack->top;
 				stack->arr[stack->top] = tbd;
 				return -1;
