@@ -70,6 +70,21 @@ const prec_table_t cond_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS] = {
         {ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER, ER},
 };
 
+#define MEM_ERR_WR(PTR)\
+	if(PTR == NULL)\
+	{\
+        fprintf(stderr, "Chyba alokace paměti!\n");\
+        EXIT_CODE = 99;\
+        return;\
+	}
+
+#define MEM_ERR\
+	if(EXIT_CODE != 0)\
+	{\
+        EXIT_CODE = 99;\
+        return;\
+	}
+
 void parse_switch(token_t *token)
 {
 	switch(token->variant)
@@ -86,8 +101,11 @@ void parse_switch(token_t *token)
 		case null_var:
 			printf("nil@nil\n");
 			break;
+        case expression_var:
+            printf("%s\n", token->content);
+            break;
 		default:
-			printf("invalid token variant in parse_switch\n");
+			fprintf(stderr, "Interní chyba, netisknutelná varianta tokenu\n");
 			break;
 	}
 }
@@ -99,8 +117,9 @@ int inf_char_conv(char **str, int input)
 		char *content = (char *)malloc(2);
 		if(content == NULL)
 		{
-			fprintf(stderr, "failed to allocate memory\n");
-			return -1;
+            fprintf(stderr, "Chyba alokace paměti!\n");
+            EXIT_CODE = 99;
+            return -1;
 		}
 		content[0] = (char)input;
 		content[1] = '\0';
@@ -112,8 +131,9 @@ int inf_char_conv(char **str, int input)
 		char *content = (char *)realloc((void *)(*str), str_size+2);
 		if(content == NULL)
 		{
-			fprintf(stderr, "failed to allocate memory\n");
-			return -1;
+            fprintf(stderr, "Chyba alokace paměti!\n");
+            EXIT_CODE = 99;
+            return -1;
 		}
 		content[str_size] = (char)input;
 		content[str_size+1] = '\0';
@@ -159,10 +179,15 @@ void string_parse(token_t *token)
 			}
 			//+1 pro '\0' char a +1 pro '\' char
 			char *helper_str = (char *)malloc(digit_count+2);
+            if(helper_str == NULL) {
+                EXIT_CODE = 99;
+                
+            }
 			snprintf(helper_str, digit_count+2, "\\%s%d", extra_zero,(int)token->content[i]);
 			for(int j = 0; helper_str[j] != '\0'; j++)
 			{
-				if(inf_char_conv(&new_str, helper_str[j]) == -1)
+                inf_char_conv(&new_str, helper_str[j]);
+				if(EXIT_CODE != 0)
 				{
 					return;
 				}
@@ -171,10 +196,11 @@ void string_parse(token_t *token)
 		}
 		else
 		{
-			if(inf_char_conv(&new_str, token->content[i]) == -1)
-			{
-				return;
-			}
+            inf_char_conv(&new_str, token->content[i]);
+            if(EXIT_CODE != 0)
+            {
+                return;
+            }
 		}
 	}
 	free(token->content);
@@ -185,13 +211,14 @@ void string_parse(token_t *token)
 /* funkce pro zpracovani pravidel E -> E op E pro {+ - * / .}
  * TODO vraci true pri uspechu a false pri neuspechu*/
 void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
-                                token_var operator, char frame_name[3],
+                                token_t *operator_token, char frame_name[3],
                                 bst_node_t **symb_table, stack_t *stack) {
     char first_data_type = first_operand->data_type[0];
     char second_data_type = second_operand->data_type[0];
     char result_data_type = '?';
     char opcode[6 + 1] = "";
     char *new_data_type;
+    token_var operator = operator_token->variant;
 
     /* provedeni nezbytnych konverzi a urceni druhu operace*/
     switch(operator) {
@@ -210,8 +237,10 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                 } else if (second_data_type == 'n') {
                     fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, second_operand->key);
                     result_data_type = 'i';
-                } else {
-                    //TODO: zpracuj chybu
+                } else if (second_data_type != 'i'){
+                    EXIT_CODE = 7;
+                    fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, second_operand->key);
+                    return;
                 }
             } else if(first_data_type == 'f') {
                 if(second_data_type == 'i') {
@@ -221,8 +250,10 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                 } else if (second_data_type == 'n') {
                     fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, second_operand->key);
                     result_data_type = 'f';
-                } else {
-                    //TODO: zpracuj chybu
+                } else if (second_data_type != 'f'){
+                    EXIT_CODE = 7;
+                    fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, second_operand->key);
+                    return;
                 }
             } else if(first_data_type == 'n') {
                 if(second_data_type == 'i') {
@@ -236,10 +267,14 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                     fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, second_operand->key);
                     result_data_type = 'i';
                 } else {
-                    //TODO: zpracuj chybu
+                    EXIT_CODE = 7;
+                    fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, second_operand->key);
+                    return;
                 }
             } else {
-                    //TODO: zpracuj chybu
+                    EXIT_CODE = 7;
+                    fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, first_operand->key);
+                    return;
             }
 
             if(strlen(opcode) == 0) {
@@ -261,9 +296,15 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
             if(second_data_type == 'n') {
                     fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, second_operand->key);
             }
-            if(first_data_type == 's' || first_data_type == 'b' || 
-              second_data_type == 's' || second_data_type == 'b') {
-                    //TODO: zpracuj chybu
+            if(first_data_type == 's' || first_data_type == 'b') {
+                EXIT_CODE = 7;
+                fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, first_operand->key);
+                return;
+            }
+            if(second_data_type == 's' || second_data_type == 'b') {
+                EXIT_CODE = 7;
+                fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, second_operand->key);
+                return;
             }
 
             result_data_type = 'f';
@@ -276,9 +317,15 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
             if(second_data_type == 'n') {
                     fprintf(stdout, "MOVE %s@%s string@\n", frame_name, second_operand->key);
             }
-            if((first_data_type != 's' && first_data_type != 'n') ||
-              (second_data_type != 's' && second_data_type != 'n')) {
-                    //TODO: zpracuj chybu
+            if(first_data_type != 's' && first_data_type != 'n') {
+                EXIT_CODE = 7;
+                fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na řetězec\n", operator_token->line_num, first_operand->key);
+                return;
+            }
+            if(second_data_type != 's' && second_data_type != 'n') {
+                EXIT_CODE = 7;
+                fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na řetězec\n", operator_token->line_num, second_operand->key);
+                return;
             }
             strcpy(opcode, "CONCAT");
             break;
@@ -289,10 +336,12 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     //vygenerovani noveho klice pro promennou s vysledkem operace
     char *new_expr_name = get_rand_var_name(symb_table);
     new_data_type = (char *)calloc(1 + 1, sizeof(char));
+    MEM_ERR_WR(new_expr_name)
     new_data_type[0] = result_data_type;
 
     //vlozeni nove promenne do tabulky symbolu
     bst_insert(symb_table, new_expr_name, var_id, new_data_type); //var_id je enum
+    MEM_ERR
 
     //odstraneni < E op E z vrcholu zasobniku
     psa_stack_pop(stack);
@@ -303,8 +352,10 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     /* zkopirovani new_data_type do dalsiho stringu, jeden pro tabulku symbolu,
      * druhy pro zasobnik, zamezeni double free*/
     char *key_for_expr_token = calloc(strlen(new_expr_name) + 1, sizeof(char)); 
+    MEM_ERR_WR(key_for_expr_token)
     strncpy(key_for_expr_token, new_expr_name, strlen(new_expr_name));
     psa_stack_push(stack, create_token(key_for_expr_token, expression_var, 0));
+    MEM_ERR
 
     //generovani kodu
     fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
@@ -318,13 +369,21 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     return;
 }
 
+//bottom up parser error handle, pouze probublane - ze lex analyzy a chyby pameti z ADT
+#define BUP_ERR_HANDLE\
+                if(EXIT_CODE != 0) {\
+                    psa_stack_dispose(stack);\
+                    return;\
+                }
+    
+
 void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit analyza, vzdy
                         bst_node_t **symb_table,    //tabulka symbolu, ze ktere se ma cerpat
                         bool in_function,           //urcuje, zda-li se ma definovat promenne v lokalnim nebo globalnim frameu - LF/GF
                         bool parsing_assignment,    //urcuje, zda se parsuje prirazeni nebo podminka
                         const prec_table_t precedence_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS]) {
     stack_t *stack = psa_stack_init();
-    token_t *current_input;
+    token_t *current_input; 
 
     token_t *top_term_of_stack;     //dle tohoto konci analyza, ignoruje tokeny s expression_var
     token_t *top_token_of_stack;    //pouzite pri ukoncovaci podmince, neignoruje expression
@@ -361,12 +420,17 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
         switch(table_cell) {
             case eq:
                 psa_stack_push(stack, current_input);
+                BUP_ERR_HANDLE;
                 current_input = get_token();
+                BUP_ERR_HANDLE;
                 break;
             case ls:
                 psa_stack_split_top(stack); //zameni term! 'a' na vrcholu zasobniku za 'a<'
+                BUP_ERR_HANDLE;
                 psa_stack_push(stack, current_input);
+                BUP_ERR_HANDLE;
                 current_input = get_token();
+                BUP_ERR_HANDLE;
                 break;
             case gr:
                 /* snaha najit shodu s nejakym z pravidel */
@@ -385,6 +449,8 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     /* urceni klice a jmena pro novou pomocnou a jeji vlozeni na zasobnik*/
                     new_key = get_rand_var_name(symb_table);
                     new_data_type = (char *)calloc(1 + 1, sizeof(char));
+                    BUP_ERR_HANDLE;
+
                     switch(top_of_stack->variant) {
                         case integ_var:
                             new_data_type[0] = 'i';
@@ -404,27 +470,48 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                             if(from_symb_table != NULL && from_symb_table->sym_var == var_id) {
                                 new_data_type[0] = from_symb_table->data_type[0];
                             } else {
-                                fprintf(stdout, "POMOC! PROMENNA NEEXISTUJE V TABULCE SYMBOLU!!!\n");
-                                //chyba, referovana promenna neexistuje, spachej sebevrazdu
+                                EXIT_CODE = 5;
+                                fprintf(stdout, "Chyba na řádku: %d\nPoužití nedefinované proměnné %s\n",
+                                        top_of_stack->line_num, top_of_stack->content);
+                                psa_stack_dispose(stack);
+                                free(new_key);
+                                free(new_data_type);
+                                return;
                             }
                             break;
                         default:
                             break;
                     }
                     bst_insert(symb_table, new_key, var_id, new_data_type); //var_id je enum
+                    if(EXIT_CODE != 0) {
+                        psa_stack_dispose(stack);
+                        free(new_key);
+                        free(new_data_type);
+                        return;
+                    }
 
                     /* generovani kodu */
                     fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key); 
                     fprintf(stdout, "MOVE %s@%s ", frame_name, new_key); 
                     parse_switch(top_of_stack);
+
                     /* odstraneni <y ze stacku*/
                     psa_stack_pop(stack);
                     psa_stack_pop(stack);
+                    BUP_ERR_HANDLE
+
                     /* zkopirovani new_key do dalsiho stringu, jeden pro tabulku symbolu,
                      * druhy pro zasobnik, zamezeni double free*/
                     char *key_for_expr_token = calloc(strlen(new_key) + 1, sizeof(char)); 
+                    BUP_ERR_HANDLE
                     strncpy(key_for_expr_token, new_key, strlen(new_key));
                     psa_stack_push(stack, create_token(key_for_expr_token, expression_var, 0));
+                    if(EXIT_CODE != 0) {
+                        psa_stack_dispose(stack);
+                        free(key_for_expr_token);
+                        return;
+                    }
+
                 } else if 
                 (top_of_stack->variant == cls_rnd_var &&
                 second_from_top->variant == expression_var &&
@@ -436,6 +523,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                      * zkopirovany expr token*/
                     size_t expr_cont_len = strlen(second_from_top->content);
                     char *expr_cont_copy = calloc(expr_cont_len + 1, sizeof(char)); 
+                    BUP_ERR_HANDLE
                     strncpy(expr_cont_copy, second_from_top->content, expr_cont_len);
                     /* odstraneni < ( E ) ze stacku*/
                     psa_stack_pop(stack);
@@ -443,7 +531,13 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     psa_stack_pop(stack);
                     psa_stack_pop(stack);
                     /* natlaceni noveho E na zasobnik*/
-                    psa_stack_push(stack, create_token(expr_cont_copy, expression_var, 0));
+                    token_t *expr_token_copy = create_token(expr_cont_copy, expression_var, 0);
+                    psa_stack_push(stack, expr_token_copy);
+                    if(EXIT_CODE != 0) {
+                        psa_stack_dispose(stack);
+                        free(expr_cont_copy);
+                        return;
+                    }
 
                 } else if(top_of_stack->variant == expression_var &&
                 second_from_top->variant >= add_oper_var && second_from_top->variant <= not_eq_var &&
@@ -460,8 +554,9 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                         case div_oper_var:
                         case oper_conc_var:
                             parse_numer_and_conc(first_operand, second_operand,
-                                second_from_top->variant, frame_name,
+                                second_from_top, frame_name,
                                 symb_table, stack);
+                            BUP_ERR_HANDLE
                             break;
                         default:
                             break;
@@ -469,8 +564,8 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                 }
 
                 break;
-            case ER: //chyba!!!!
-                //return?
+            case ER:
+                BUP_ERR_HANDLE
                 break;
         }
 

@@ -88,9 +88,10 @@ int psa_stack_push(stack_t *stack, token_t *item) {
 			fprintf(stderr, "Chyba alokace paměti!\n");
             EXIT_CODE = 99;
 			return -1;
-		}
-		stack->arr = arr;
-		stack->arr[stack->top] = item;
+		} else {
+            stack->arr = arr;
+            stack->arr[stack->top] = item;
+        }
 	}
 	return 1;
 }
