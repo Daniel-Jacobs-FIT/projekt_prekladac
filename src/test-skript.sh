@@ -24,7 +24,7 @@ cd ${TEST_DIR} && for DIR in *; do
             if ! [[ ${TEST} =~ ^@ ]]; then
                 echo "${BOLD}${TEST}:${NORMAL}"
                 if [ -f refs/${TEST}-ref ]; then
-                    diff --color -u refs/${TEST}-ref <(../../../${BIN_NAME} < $TEST)
+                    diff --color -u refs/${TEST}-ref <(../../../${BIN_NAME} < $TEST 2>&1)
                     if [ $? == 0 ]; then
                         printf "\U21b3 ${BOLD}${GREEN}SUCCESS${NORMAL}\n\n"
                     fi
