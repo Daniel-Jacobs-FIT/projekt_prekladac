@@ -1,0 +1,5 @@
+Neočekávaný lexém ?int ve výrazu na řádku: 2!
+Neočekávaný lexém (null) ve výrazu na řádku: 2!
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@9
+Exit code = 2

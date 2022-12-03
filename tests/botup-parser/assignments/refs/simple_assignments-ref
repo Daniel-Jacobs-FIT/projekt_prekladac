@@ -8,3 +8,4 @@ DEFVAR GF@_expression915
 MOVE GF@_expression915 float@0x1.afcb50b0f27bbp+11
 DEFVAR GF@_expression793
 MOVE GF@_expression793 float@0x1.b022388p+35
+Exit code = 0

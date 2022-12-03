@@ -1,0 +1,12 @@
+Neočekávaný lexém (null) ve výrazu na řádku: 1!
+DEFVAR GF@_expression383
+MOVE GF@_expression383 GF@$my_number
+DEFVAR GF@_expression886
+MOVE GF@_expression886 float@0x1.4p+2
+DEFVAR GF@_expression777
+MOVE GF@_expression777 int@3
+INT2FLOAT GF@_expression777 GF@_expression777
+DEFVAR GF@_expression915
+SUB GF@_expression915 GF@_expression886 GF@_expression777
+
+Exit code = 2

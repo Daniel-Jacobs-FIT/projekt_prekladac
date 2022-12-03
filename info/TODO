@@ -6,9 +6,11 @@ HOTOVO Naprogramovat zasobnik pro analyzu zdola nahoru
 
 HOTOVO: Udelat testy na zasobnik
 
-Naprogramovat pravidla s porovnavacimi operatory
+HOTOVO Zavest utils.h - nastavovani error kodu a radne ukoncovani programu - uklid...
 
-Zavest utils.h - nastavovani error kodu a radne ukoncovani programu - uklid...
+Napsat testy i pro conditions - nutne upravit botup-parser-tests.c
+
+Naprogramovat pravidla s porovnavacimi operatory
 
 Napsat hloubkove testy pro bottom-up parser
 

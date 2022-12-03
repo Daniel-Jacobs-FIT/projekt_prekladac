@@ -11,7 +11,7 @@ if [ $1 == "scanner" ]; then
     TEST_DIR=tests/scanner
     BIN_NAME=scanner-tests
 elif [ $1 == "parser" ]; then
-    TEST_DIR=tests/parser
+    TEST_DIR=tests/botup-parser
     BIN_NAME=botup-parser-tests
 else
     echo "Incorrect arguments"
