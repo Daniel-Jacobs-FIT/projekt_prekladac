@@ -92,7 +92,7 @@ void parse_switch(token_t *token)
 	}
 }
 
-int inf_char_conv(char **str, int input)
+int inf_char_str_lit(char **str, int input)
 {
 	if((*str) == NULL)
 	{
@@ -162,7 +162,7 @@ void string_parse(token_t *token)
 			snprintf(helper_str, digit_count+2, "\\%s%d", extra_zero,(int)token->content[i]);
 			for(int j = 0; helper_str[j] != '\0'; j++)
 			{
-				if(inf_char_conv(&new_str, helper_str[j]) == -1)
+				if(inf_char_str_lit(&new_str, helper_str[j]) == -1)
 				{
 					return;
 				}
@@ -171,7 +171,7 @@ void string_parse(token_t *token)
 		}
 		else
 		{
-			if(inf_char_conv(&new_str, token->content[i]) == -1)
+			if(inf_char_str_lit(&new_str, token->content[i]) == -1)
 			{
 				return;
 			}

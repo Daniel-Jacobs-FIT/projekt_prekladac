@@ -379,10 +379,12 @@ scanner_state_t default_logic(int input, token_t *token)
 		case ')':
 			return cls_rnd_s;
 		case ',':
-			getc(stdin);
+			//TODO check the underlying cause of this 
+			//getc(stdin);
 			return comma_s;
 		case ':':
-			getc(stdin);
+			//TODO here as well
+			//getc(stdin);
 			return colon_s;
 		case '{':
 			return open_curl_s;

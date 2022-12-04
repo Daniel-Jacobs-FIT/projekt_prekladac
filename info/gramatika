@@ -25,7 +25,6 @@ TERMINALY:
     f_id = identifikator funkce
     term = promenna nebo konstanta (nelze do volani funkce strcit vyraz jako "x + 2")
 
-
 PRG -> SSD
 SSD -> STAT SSD
 SSD -> FDEF SSD

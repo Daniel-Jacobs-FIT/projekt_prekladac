@@ -24,6 +24,7 @@ typedef enum {default_s, div_oper_s, com_oneline_s,\
 
 /* Enum pro urceni varianty tokenu (je to operator '/' nebo identifikator nebo ...)
  * */
+//keywords: else, float, ?float, function, if, int, ?int, null, return, string, ?string, void, while
 typedef enum {add_oper_var, sub_oper_var,  oper_conc_var,
                 mul_oper_var, div_oper_var,
                 grt_var, less_var, less_eq_var, grt_eq_var,
