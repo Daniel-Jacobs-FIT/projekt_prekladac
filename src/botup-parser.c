@@ -233,26 +233,207 @@ void replace_and_push_exp(int to_pop, stack_t *stack, char *expr_content, int li
     return;
 }
 
+void parse_soft_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
+                                token_t *operator_token, char frame_name[3],
+                                bst_node_t **symb_table, stack_t *stack) {
+    char first_data_type = first_operand->data_type[0];
+    char second_data_type = second_operand->data_type[0];
+    char opcode[3] = "";
+
+    if(operator_token->variant == grt_eq_var) {
+        strcpy(opcode, "GT");
+    } else {
+        strcpy(opcode, "LT");
+    }
+
+    /* Jsou potreba tri nove promenne, neexistuje instrukce pro operaci <= nebo >=
+     * Nasimulujeme E <= E jako E < E or E = E
+     *
+     * Nejprve prepiseme null na kompatibilni operator, jelikoz instrukce null neumi pracovat s null
+     * Pote sepiseme bud < nebo > instrukci (zalezi <= nebo >=)
+     * Pote napiseme instrukci pro ==
+     * Nakonec je vysledek cele operace ulozen do final_expr
+     * */
+
+    #define FREE_EXPR_NAMES_SOFT_COMP\
+        free(final_expr_name);\
+        free(ineq_expr_name);\
+        free(eq_expr_name);
+    #define FREE_EXPR_DATA_TYPES_SOFT_COMP\
+        free(final_expr_data_type);\
+        free(ineq_expr_data_type);\
+        free(eq_expr_data_type);
+
+    _Pragma("GCC diagnostic push")
+    _Pragma("GCC diagnostic ignored \"-Wuse-after-free\"")
+
+    //vygenerovani retezcu s datovymi typy pro nove promenne
+    char *final_expr_data_type = (char *)calloc(1 + 1, sizeof(char));
+    char *ineq_expr_data_type = (char *)calloc(1 + 1, sizeof(char));
+    char *eq_expr_data_type = (char *)calloc(1 + 1, sizeof(char));
+    if(final_expr_data_type == NULL || ineq_expr_data_type == NULL || eq_expr_data_type == NULL) {
+        FREE_EXPR_DATA_TYPES_SOFT_COMP
+    }
+    //vygenerovani jmen pro nove promenne
+    char *final_expr_name = get_rand_var_name(symb_table);
+    bst_insert(symb_table, final_expr_name, var_id, final_expr_data_type);
+    char *ineq_expr_name = get_rand_var_name(symb_table);
+    bst_insert(symb_table, ineq_expr_name, var_id, ineq_expr_data_type);
+    char *eq_expr_name = get_rand_var_name(symb_table);
+    bst_insert(symb_table, eq_expr_name, var_id, eq_expr_data_type);
+    if(EXIT_CODE != 0) {
+        FREE_EXPR_NAMES_SOFT_COMP
+        FREE_EXPR_DATA_TYPES_SOFT_COMP
+        return;
+    }
+    final_expr_data_type[0] = 'b';
+    ineq_expr_data_type[0] = 'b'; 
+    eq_expr_data_type[0] = 'b'; 
+
+    //generace kodu pro definovani promennych
+    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, final_expr_name);
+    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, ineq_expr_name);
+    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, eq_expr_name);
+
+    #define CONV_NULL_SOFT_COMP(WHICH_OP_KEY)\
+            case 'i':\
+                fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, WHICH_OP_KEY);\
+                break;\
+            case 'f':\
+                fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, WHICH_OP_KEY);\
+                break;\
+            case 's':\
+                fprintf(stdout, "MOVE %s@%s string@\n", frame_name, WHICH_OP_KEY);\
+                break;\
+            case 'n':\
+                fprintf(stdout, "MOVE %s@%s int@0\n", frame_name, WHICH_OP_KEY);\
+                break;\
+            default:\
+                EXIT_CODE = 7;\
+                FREE_EXPR_NAMES_SOFT_COMP\
+                FREE_EXPR_DATA_TYPES_SOFT_COMP\
+                fprintf(stderr, "Chyba na řádku: %d\nBoolean hodnotu nelze použít ve výrazu\n", operator_token->line_num);\
+                return;
+
+    //prepsani null na neco schudnejsiho
+    if(first_data_type == 'n') {        // null >= ?
+        switch(second_data_type) {
+            CONV_NULL_SOFT_COMP(first_operand->key)
+        }
+    } else if(second_data_type == 'n') {  // null >= ?
+        switch(first_data_type) {
+            CONV_NULL_SOFT_COMP(second_operand->key)
+        }
+    } else if((first_data_type == 's' && second_data_type != 's') ||    // s >= i/f/b nebo naopak
+              (second_data_type == 's' && first_data_type != 's')) {
+        EXIT_CODE = 7;
+        FREE_EXPR_NAMES_SOFT_COMP
+        FREE_EXPR_DATA_TYPES_SOFT_COMP
+        fprintf(stderr, "Chyba na řádku: %d\nŘetězec nelze porovnávat s číslem nebo booleanem\n", operator_token->line_num);
+        return;
+    } else if(first_data_type == 'i' && second_data_type == 'f') {      // i >= f
+        fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n", frame_name, first_operand->key,
+                                                 frame_name, first_operand->key);
+    } else if(first_data_type == 'f' && second_data_type == 'i') {      // f >= f
+        fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n", frame_name, second_operand->key,
+                                                 frame_name, second_operand->key);
+    } else if(first_data_type == 'b' || second_data_type == 'b') {      //b >= ? nebo ? >= b
+        EXIT_CODE = 7;
+        FREE_EXPR_NAMES_SOFT_COMP
+        FREE_EXPR_DATA_TYPES_SOFT_COMP
+        fprintf(stderr, "Chyba na řádku: %d\nBoolean hodnotu nelze použít ve výrazu\n", operator_token->line_num);
+        return;
+    } 
+
+    //generovani kodu
+    fprintf(stdout, "%s %s@%s %s@%s %s@%s\n", opcode,
+                                            frame_name, ineq_expr_name,
+                                            frame_name, first_operand->key,
+                                            frame_name, second_operand->key);
+    fprintf(stdout, "EQ %s@%s %s@%s %s@%s\n", frame_name, eq_expr_name,
+                                            frame_name, first_operand->key,
+                                            frame_name, second_operand->key);
+    fprintf(stdout, "OR %s@%s %s@%s %s@%s\n", frame_name, final_expr_name,
+                                            frame_name, ineq_expr_name,
+                                            frame_name, eq_expr_name);
+    fprintf(stdout, "\n");
+
+    replace_and_push_exp(4, stack, final_expr_name, operator_token->line_num);
+}
+
+void parse_strict_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
+                                token_t *operator_token, char frame_name[3],
+                                bst_node_t **symb_table, stack_t *stack) {
+    char opcode[2 + 1] = "";    //EQ nebo LS
+    char first_data_type = first_operand->data_type[0];
+    char second_data_type = second_operand->data_type[0];
+
+    if(operator_token->variant == grt_var) {
+        strcpy(opcode, "GT");
+    } else {
+        strcpy(opcode, "LT");
+    }
+
+    //vygenerovani jmena nove promenne, prirazeni datoveho typu
+    char *new_expr_name = get_rand_var_name(symb_table);
+    char *new_data_type = (char *)calloc(1 + 1, sizeof(char));
+    if(EXIT_CODE != 0 || new_data_type == NULL) {
+        free (new_expr_name);
+        free(new_data_type);
+        return;
+    }
+    new_data_type[0] = 'b';
+    
+    if((first_data_type == 's' && second_data_type != 's') ||   //str op int/float/null -> chyba
+       (second_data_type == 's' && first_data_type != 's')) {
+        EXIT_CODE = 7;
+        fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nebo %s nelze implicitně konvertovat na číslo\n", operator_token->line_num, first_operand->key, second_operand->key);
+        free (new_expr_name);
+        free(new_data_type);
+        return;
+    } else if(first_data_type == 'n' || second_data_type == 'n') {  //melo by se priradit false
+        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
+        fprintf(stdout, "MOVE %s@%s bool@false\n", frame_name, new_expr_name);
+
+    #define DEFVAR_AND_EXEC_STRICT_COMP\
+        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);\
+        fprintf(stdout, "%s %s@%s %s@%s %s@%s\n", opcode, frame_name, new_expr_name,\
+                                                    frame_name, first_operand->key,\
+                                                    frame_name, second_operand->key);
+
+    } else if(first_data_type == 'i' && second_data_type == 'f') {  //konverze int->float
+        fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n", frame_name, first_operand->key,
+                                                   frame_name, first_operand->key);
+        DEFVAR_AND_EXEC_STRICT_COMP
+    } else if(first_data_type == 'f' && second_data_type == 'i') { //konverze int->float
+        fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n", frame_name, second_operand->key,
+                                                   frame_name, second_operand->key);
+        DEFVAR_AND_EXEC_STRICT_COMP
+    } else if(first_data_type != 'b' && second_data_type != 'b') { //i op i | f op f | s op s
+        DEFVAR_AND_EXEC_STRICT_COMP
+    } else {    //chyba! nejaky operand je boolean!
+        EXIT_CODE = 7;
+        fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nebo %s nelze implicitně konvertovat na číslo\n", operator_token->line_num, first_operand->key, second_operand->key);
+        free (new_expr_name);
+        free(new_data_type);
+        return;
+    }
+
+    bst_insert(symb_table, new_expr_name, var_id, new_data_type); //var_id je enum
+    if(EXIT_CODE != 0) {
+        free (new_expr_name);
+        free(new_data_type);
+        return;
+    }
+
+    replace_and_push_exp(4, stack, new_expr_name, operator_token->line_num);
+    _Pragma("GCC diagnostic pop")
+}
+
 /* Funkce pro zpracovani operatoru === a !=== */
 void parse_identity(bst_node_t *first_operand, bst_node_t *second_operand,
                                 token_t *operator_token, char frame_name[3],
                                 bst_node_t **symb_table, stack_t *stack) {
-    //vygenerovani noveho klice pro promennou s vysledkem operace
-    /* Co delat?
-     * - kontrola typu:
-     *   stejne u === -> dalsi praca
-     *   jine   u === -> do nove promenne false
-     *   stejne u !== -> dalsi praca
-     *   jine   u !== -> do nove promenne true
-     * - dalsi praca?
-     *   porovnani instrukci EQ,
-     *   do nove promenne se zapise vysledek
-     * - vloz novou promennou do tabulky symbolu
-     * - popni 4 tokeny ze stacku
-     * - vloz na stack novou expression s typem bool*/
-    /* Napady:
-     *      nikdy nevyhodi chybu => nova promenna se generuje vzdy */
-
     //ulozeni, protoze hybeme se stackem pred pouzitim operator_token => bude z nej neco jineho nez cekame
     token_var operator = operator_token->variant;
     int line_num = operator_token->line_num;
@@ -636,7 +817,22 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                                 symb_table, stack);
                             BUP_ERR_HANDLE
                             break;
+                        case grt_var:
+                        case less_var:
+                            parse_strict_ineq(first_operand, second_operand,
+                                second_from_top, frame_name,
+                                symb_table, stack);
+                            BUP_ERR_HANDLE
+                            break;
+                        case grt_eq_var:
+                        case less_eq_var:
+                            parse_soft_ineq(first_operand, second_operand,
+                                second_from_top, frame_name,
+                                symb_table, stack);
+                            BUP_ERR_HANDLE
+                            break;
                         default:
+                            fprintf(stderr, "Neznámý operátor! E op E");
                             break;
                     }
                 }

@@ -1,0 +1,5 @@
+$my_number < 6;
+"string1" > "string2\n";
+null > 8;
+56.8 < null;
+4 < 4.0;
