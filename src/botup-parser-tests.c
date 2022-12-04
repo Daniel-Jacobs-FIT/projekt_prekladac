@@ -118,7 +118,7 @@ int main() {
 
     token_t *first_token = get_token();
     do {
-        bottom_up_parser(first_token, &table, false, true, ass_table);
+        bottom_up_parser(first_token, &table, false, true , ass_table);
         first_token = get_token();
     } while (first_token->variant != end_prg_var && first_token->variant != err_var);
     fprintf(stdout, "Exit code = %d\n", EXIT_CODE);

@@ -208,8 +208,96 @@ void string_parse(token_t *token)
 	printf("string@%s\n", token->content);
 }
 
-/* funkce pro zpracovani pravidel E -> E op E pro {+ - * / .}
- * TODO vraci true pri uspechu a false pri neuspechu*/
+/* Funkce pro nahrazeni to_pop polozek na stacku jednou polozkou expression
+ * pro kterou alokuje retezec pro jmeno a zkopiruje obsah retezce expr_content,
+ * (zamezeni double free), nastavi variantu na expression_var a cislo radku na line_num
+ * V pripade chyby pameti nastavi EXIT_CODE na 99
+ * */
+void replace_and_push_exp(int to_pop, stack_t *stack, char *expr_content, int line_num) {
+    char *new_expr_content = calloc(strlen(expr_content) + 1, sizeof(char)); 
+    int local_line_num = line_num;
+    if(EXIT_CODE != 0) {    //kontrola, ze calloc probehl v poradku
+        return;
+    }
+    strncpy(new_expr_content, expr_content, strlen(expr_content) + 1);
+
+    for(int i = 0; i < to_pop; i++) {
+        psa_stack_pop(stack);
+    }
+
+    if(EXIT_CODE != 0) {    //kontrola, ze popy probehly v poradku
+        return;
+    }
+
+    psa_stack_push(stack, create_token(new_expr_content, expression_var, local_line_num));
+    return;
+}
+
+/* Funkce pro zpracovani operatoru === a !=== */
+void parse_identity(bst_node_t *first_operand, bst_node_t *second_operand,
+                                token_t *operator_token, char frame_name[3],
+                                bst_node_t **symb_table, stack_t *stack) {
+    //vygenerovani noveho klice pro promennou s vysledkem operace
+    /* Co delat?
+     * - kontrola typu:
+     *   stejne u === -> dalsi praca
+     *   jine   u === -> do nove promenne false
+     *   stejne u !== -> dalsi praca
+     *   jine   u !== -> do nove promenne true
+     * - dalsi praca?
+     *   porovnani instrukci EQ,
+     *   do nove promenne se zapise vysledek
+     * - vloz novou promennou do tabulky symbolu
+     * - popni 4 tokeny ze stacku
+     * - vloz na stack novou expression s typem bool*/
+    /* Napady:
+     *      nikdy nevyhodi chybu => nova promenna se generuje vzdy */
+
+    //ulozeni, protoze hybeme se stackem pred pouzitim operator_token => bude z nej neco jineho nez cekame
+    token_var operator = operator_token->variant;
+    int line_num = operator_token->line_num;
+
+    //nagenerovani noveho jmena  pro vysledek operace
+    char *new_expr_name = get_rand_var_name(symb_table);
+    char *new_data_type = (char *)calloc(1 + 1, sizeof(char));
+
+    if(EXIT_CODE != 0 || new_data_type == NULL) {
+        free (new_expr_name);
+        return;
+    }
+    new_data_type[0] = 'b';
+
+    //vlozeni nove promenne do tabulky symbolu
+    bst_insert(symb_table, new_expr_name, var_id, new_data_type); //var_id je enum
+    if(EXIT_CODE != 0 || new_data_type == NULL) {
+        free(new_expr_name);
+        free(new_data_type);
+        return;
+    }
+
+    replace_and_push_exp(4, stack, new_expr_name, line_num);
+    if(EXIT_CODE != 0 || new_data_type == NULL) {
+        return;
+    }
+
+    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
+
+    if(first_operand->data_type[0] != second_operand->data_type[0]) {
+        if(operator == eq_var) {
+            fprintf(stdout, "MOVE %s@%s bool@false\n", frame_name, new_expr_name);        
+        } else {
+            fprintf(stdout, "MOVE %s@%s bool@true\n", frame_name, new_expr_name);        
+        }
+    } else {    //operatory maji stejny typ, musim porovnat hodnoty
+            fprintf(stdout, "EQ %s@%s %s@%s %s@%s\n", frame_name, new_expr_name,
+                                                      frame_name, first_operand->key,
+                                                      frame_name, second_operand->key);
+    }
+    return;
+}
+
+
+/* funkce pro zpracovani pravidel E -> E op E pro {+ - * / .} */
 void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                                 token_t *operator_token, char frame_name[3],
                                 bst_node_t **symb_table, stack_t *stack) {
@@ -230,6 +318,7 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
             }
         case mul_oper_var:
             if(first_data_type == 'i') {        // i + ?
+                result_data_type = 'i'; //pokud se nenamatchuje zadna podminka, druhy operand je int
                 if(second_data_type == 'f') {
                     fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n",
                             frame_name, first_operand->key, frame_name, first_operand->key);
@@ -242,15 +331,16 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                     fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, second_operand->key);
                     return;
                 }
-            } else if(first_data_type == 'f') {
-                if(second_data_type == 'i') {
+            } else if(first_data_type == 'f') { //f + ?
+                result_data_type = 'f'; //pokud se nenamatchuje zadna podminka, druhy operand je float
+                if(second_data_type == 'i') {   //f + i
                     fprintf(stdout, "INT2FLOAT %s@%s %s@%s\n",
                             frame_name, second_operand->key, frame_name, second_operand->key);
                     result_data_type = 'f';
-                } else if (second_data_type == 'n') {
+                } else if (second_data_type == 'n') {   //f + null
                     fprintf(stdout, "MOVE %s@%s float@0x0p+0\n", frame_name, second_operand->key);
                     result_data_type = 'f';
-                } else if (second_data_type != 'f'){
+                } else if (second_data_type != 'f'){    //f + string/bool <- chyba
                     EXIT_CODE = 7;
                     fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na číslo\n", operator_token->line_num, second_operand->key);
                     return;
@@ -307,7 +397,7 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                 return;
             }
 
-            result_data_type = 'f';
+            result_data_type = 'f'; //vysledkem deleni je vzdy float
             strcpy(opcode, "DIV");
             break;
         case oper_conc_var:
@@ -327,6 +417,7 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                 fprintf(stderr, "Chyba v datovém typu operandů na řádku: %d\n%s nelze implicitně konvertovat na řetězec\n", operator_token->line_num, second_operand->key);
                 return;
             }
+            result_data_type = 's'; //vysledkem konkatenace je vzdy retezec
             strcpy(opcode, "CONCAT");
             break;
         default:
@@ -343,18 +434,8 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     bst_insert(symb_table, new_expr_name, var_id, new_data_type); //var_id je enum
     MEM_ERR
 
-    //odstraneni < E op E z vrcholu zasobniku
-    psa_stack_pop(stack);
-    psa_stack_pop(stack);
-    psa_stack_pop(stack);
-    psa_stack_pop(stack);
-
-    /* zkopirovani new_data_type do dalsiho stringu, jeden pro tabulku symbolu,
-     * druhy pro zasobnik, zamezeni double free*/
-    char *key_for_expr_token = calloc(strlen(new_expr_name) + 1, sizeof(char)); 
-    MEM_ERR_WR(key_for_expr_token)
-    strncpy(key_for_expr_token, new_expr_name, strlen(new_expr_name));
-    psa_stack_push(stack, create_token(key_for_expr_token, expression_var, 0));
+    //nahrazeni: < E op E -> E
+    replace_and_push_exp(4, stack, new_expr_name, operator_token->line_num);
     MEM_ERR
 
     //generovani kodu
@@ -482,6 +563,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                         default:
                             break;
                     }
+
                     bst_insert(symb_table, new_key, var_id, new_data_type); //var_id je enum
                     if(EXIT_CODE != 0) {
                         psa_stack_dispose(stack);
@@ -490,7 +572,8 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                         return;
                     }
 
-                    /* generovani kodu */
+                    /* generovani kodu, podivne poradi (generujeme pred popem), kvuli
+                     * nutnosti vytisknout term pred jeho popnutim, u expr neni nutne*/
                     fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key); 
                     fprintf(stdout, "MOVE %s@%s ", frame_name, new_key); 
                     parse_switch(top_of_stack, frame_name);
@@ -521,21 +604,9 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     /* negenerujeme instrukce, pouze zkopirujeme expr token
                      * ze stacku odstranime < ( E ) a zpatky tam natlacime
                      * zkopirovany expr token*/
-                    size_t expr_cont_len = strlen(second_from_top->content);
-                    char *expr_cont_copy = calloc(expr_cont_len + 1, sizeof(char)); 
-                    BUP_ERR_HANDLE
-                    strncpy(expr_cont_copy, second_from_top->content, expr_cont_len);
-                    /* odstraneni < ( E ) ze stacku*/
-                    psa_stack_pop(stack);
-                    psa_stack_pop(stack);
-                    psa_stack_pop(stack);
-                    psa_stack_pop(stack);
-                    /* natlaceni noveho E na zasobnik*/
-                    token_t *expr_token_copy = create_token(expr_cont_copy, expression_var, 0);
-                    psa_stack_push(stack, expr_token_copy);
+                    replace_and_push_exp(4, stack, second_from_top->content, second_from_top->line_num);
                     if(EXIT_CODE != 0) {
                         psa_stack_dispose(stack);
-                        free(expr_cont_copy);
                         return;
                     }
 
@@ -554,6 +625,13 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                         case div_oper_var:
                         case oper_conc_var:
                             parse_numer_and_conc(first_operand, second_operand,
+                                second_from_top, frame_name,
+                                symb_table, stack);
+                            BUP_ERR_HANDLE
+                            break;
+                        case eq_var:
+                        case not_eq_var:
+                            parse_identity(first_operand, second_operand,
                                 second_from_top, frame_name,
                                 symb_table, stack);
                             BUP_ERR_HANDLE

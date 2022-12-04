@@ -1,0 +1,7 @@
+DEFVAR GF@_expression383
+MOVE GF@_expression383 GF@$my_number
+DEFVAR GF@_expression886
+MOVE GF@_expression886 int@3
+DEFVAR GF@_expression777
+EQ GF@_expression777 GF@_expression383 GF@_expression886
+Exit code = 0
