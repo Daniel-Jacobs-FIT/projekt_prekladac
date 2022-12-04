@@ -489,6 +489,9 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     char *new_data_type;
     token_var operator = operator_token->variant;
 
+    _Pragma("GCC diagnostic push")
+    _Pragma("GCC diagnostic ignored \"-Wimplicit-fallthrough\"")
+
     /* provedeni nezbytnych konverzi a urceni druhu operace*/
     switch(operator) {
         case add_oper_var:
@@ -635,11 +638,13 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
 #define BUP_ERR_HANDLE\
                 if(EXIT_CODE != 0) {\
                     psa_stack_dispose(stack);\
-                    return;\
+                    return NULL;\
                 }
     
-
-void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit analyza, vzdy
+/* Funkce implementujici syntaktickou analyzu zdola nahoru
+ * Vraci ukazatel do tabulky symbolu na promennou, do niz
+ * byl ulozen vysledek celeho vyrazu*/
+bst_node_t *bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit analyza, vzdy
                         bst_node_t **symb_table,    //tabulka symbolu, ze ktere se ma cerpat
                         bool in_function,           //urcuje, zda-li se ma definovat promenne v lokalnim nebo globalnim frameu - LF/GF
                         bool parsing_assignment,    //urcuje, zda se parsuje prirazeni nebo podminka
@@ -738,7 +743,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                                 psa_stack_dispose(stack);
                                 free(new_key);
                                 free(new_data_type);
-                                return;
+                                return NULL;
                             }
                             break;
                         default:
@@ -750,7 +755,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                         psa_stack_dispose(stack);
                         free(new_key);
                         free(new_data_type);
-                        return;
+                        return NULL;
                     }
 
                     /* generovani kodu, podivne poradi (generujeme pred popem), kvuli
@@ -773,7 +778,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     if(EXIT_CODE != 0) {
                         psa_stack_dispose(stack);
                         free(key_for_expr_token);
-                        return;
+                        return NULL;
                     }
 
                 } else if 
@@ -788,7 +793,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     replace_and_push_exp(4, stack, second_from_top->content, second_from_top->line_num);
                     if(EXIT_CODE != 0) {
                         psa_stack_dispose(stack);
-                        return;
+                        return NULL;
                     }
 
                 } else if(top_of_stack->variant == expression_var &&
@@ -842,7 +847,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                     fprintf(stderr, "Neočekávaný lexém %s ve výrazu na řádku: %d!\n",
                             current_input->content, current_input->line_num);
                     EXIT_CODE = 2;
-                    return;
+                    return NULL;
                 }
                 break;
             case ER:
@@ -850,7 +855,7 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
                 fprintf(stderr, "Neočekávaný lexém %s ve výrazu na řádku: %d!\n",
                         current_input->content, current_input->line_num);
                 EXIT_CODE = 2;
-                return;
+                return NULL;
         }
 
     top_token_of_stack = psa_stack_get_nth(stack, 0);
@@ -858,7 +863,8 @@ void bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit ana
 
     } while (current_input->variant != ending_token || top_term_of_stack->variant != ending_token || top_token_of_stack->variant != expression_var);
 
-    //sdelit top_down parseru v jake promenne je ulozen vysledek vyrazu
+    //v pripade uspechu, navraceni ukazatele na promennou, v niz je ulozen vysledek vyrazu
+    return bst_search(*symb_table, top_token_of_stack->content);
 }
 
 /*

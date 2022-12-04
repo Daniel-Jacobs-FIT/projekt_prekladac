@@ -116,9 +116,11 @@ int main() {
         bst_insert(&table, alloced_key, var_id, alloced_type);
     }
 
+    bst_node_t *returned_ptr;
+
     token_t *first_token = get_token();
     do {
-        bottom_up_parser(first_token, &table, false, true , ass_table);
+        returned_ptr = bottom_up_parser(first_token, &table, false, true , ass_table);
         first_token = get_token();
     } while (first_token->variant != end_prg_var && first_token->variant != err_var);
     fprintf(stdout, "Exit code = %d\n", EXIT_CODE);
