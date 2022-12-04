@@ -6,3 +6,4 @@ psa_stack-tests
 scanner-tests
 symtable-tests
 botup-parser-tests
+topdown-parser-tests
