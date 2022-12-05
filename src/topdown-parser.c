@@ -389,7 +389,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
      * Pokud je tam, muze se jednat o volani funkce nebo prirazeni vyrazu -> rozhodnout se
      * */
 
-    #define ASG_DEFVAR(WHICH_FRAME)\
+    #define ASG_DEFVAR\
         new_var_name = (char *)calloc(strlen(token->content) + 1, sizeof(char));\
         new_data_type = (char *)calloc(1, sizeof(char));\
         if(new_var_name == NULL || new_data_type == NULL) {\
@@ -401,29 +401,32 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         }\
         strcpy(new_var_name, token->content);\
 		new_data_type[0] = '\0';\
-        fprintf(stdout, "DEFVAR WHICH_FRAME@%s\n", token->content);
+        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, token->content);
 
-    //Kontrola, jestli je promenna jiz definovana, pokud ne, definuje se a vlozi do tabulky symbolu
+    //Kontrola, jestli je promenna jiz definovana, pokud ne, definuje se
     if(local_symbtab == NULL) {  //nejsme ve funkci, pristupujeme ke globalni tabulce
         var_in_symbtab = bst_search(*global_symbtab, token->content);
         if(var_in_symbtab == NULL) {   //promenna jeste neni definovana
-            ASG_DEFVAR(GF)
-            bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
-            var_in_symbtab = bst_search(*global_symbtab, token->content);
+            char *frame_name = "GF";
+            ASG_DEFVAR
+        } else {
+            new_var_name = var_in_symbtab->key;
         }
     } else {    //jsme ve funkci, pristupujeme k lokalni tabulce symbolu
         var_in_symbtab = bst_search(*local_symbtab, token->content);
         if(var_in_symbtab == NULL) {  //promenna jeste neni definovana
-            ASG_DEFVAR(LF)
-            bst_insert(global_symbtab, new_var_name, id_var, new_data_type);
-            var_in_symbtab = bst_search(*global_symbtab, token->content);
+            char *frame_name = "LF";
+            ASG_DEFVAR
+        } else {
+            new_var_name = var_in_symbtab->key;
         }
     }
-    //var_in_symbtab nyni ukazuje na novou/starou promennou v tabulce symbolu
+    //definovana je sice definovana ve vygenerovanem kodu, ale ne v tabulce symbolu
+    //pokud by totiz byla pouzita ve vyrazu jeji definice, je to chyba
 
 	token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 
-    if(token->variant != eq_var) {  //neni prirazeni - chyba
+    if(token->variant != assign_var) {  //neni prirazeni - chyba
         EXIT_CODE = 2;
         free(new_var_name);
         free(new_data_type);
@@ -437,6 +440,10 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
             //priradit do var_insymtab_data_type novy datatyp
             //generovat move instrukci
 		} else {    //je to prirazeni vyrazu -> ENGAGE BOTTOM UP CHROUSTAC
+
+            //nejdriv musim pozrat '=' z vrcholu zasobniku:
+            next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+
             #define ASG_EXPR_PARSE\
                 bst_node_t *expr_result;\
                 expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, ass_table);\
@@ -445,17 +452,29 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
                     free(new_data_type);\
                     return 1;\
                 }\
-                fprintf(stdout, "MOVE %s@%s %s@%s", frame_name, new_var_name,\
+                fprintf(stdout, "MOVE %s@%s %s@%s\n", frame_name, new_var_name,\
                                                     frame_name, expr_result->key);\
-                var_in_symbtab->data_type[0] = expr_result->data_type[0];
 
             if(local_symbtab == NULL) { //pracuju s globalni tabulkou
                 char *frame_name = "GF";
                 ASG_EXPR_PARSE
-                
+                if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
+                    bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
+                    var_in_symbtab = bst_search(*global_symbtab, new_var_name);
+                    var_in_symbtab->data_type[0] = expr_result->data_type[0];
+                } else {    //promenna je jiz definovana
+                    var_in_symbtab->data_type[0] = expr_result->data_type[0];
+                }
             } else {    //pracuju s lokalni tabulkou
                 char *frame_name = "LF";
                 ASG_EXPR_PARSE
+                if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
+                    bst_insert(local_symbtab, new_var_name, var_id, new_data_type);
+                    var_in_symbtab = bst_search(*local_symbtab, new_var_name);
+                    var_in_symbtab->data_type[0] = expr_result->data_type[0];
+                } else {    //promenna je jiz definovana
+                    var_in_symbtab->data_type[0] = expr_result->data_type[0];
+                }
             }
         }
     }

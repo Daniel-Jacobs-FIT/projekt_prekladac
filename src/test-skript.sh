@@ -10,11 +10,14 @@ IGNORED=""
 if [ $1 == "scanner" ]; then
     TEST_DIR=tests/scanner
     BIN_NAME=scanner-tests
-elif [ $1 == "parser" ]; then
+elif [ $1 == "bottom-up-parser" ]; then
     TEST_DIR=tests/botup-parser
     BIN_NAME=botup-parser-tests
+elif [ $1 == "top-down-parser" ]; then
+    TEST_DIR=tests/topdown-parser
+    BIN_NAME=topdown-parser-tests
 else
-    echo "Incorrect arguments"
+    echo "Incorrect arguments for testing script!"
     exit 1
 fi
 
