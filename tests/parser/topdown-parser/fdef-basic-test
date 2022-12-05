@@ -1,0 +1,5 @@
+function fid():void{}
+function hell(?string $help, string $me, int $trapped): ?float{}
+function hello( string $up, int $away  ): float{}
+function f(float $away, ?float $inside):?string{}
+function r(float $me, int $myself)  :  ?string  {}
