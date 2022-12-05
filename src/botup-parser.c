@@ -186,7 +186,7 @@ void string_parse(token_t *token)
 			snprintf(helper_str, digit_count+2, "\\%s%d", extra_zero,(int)token->content[i]);
 			for(int j = 0; helper_str[j] != '\0'; j++)
 			{
-				inf_char_str_lit(&new_str, helper_str[j]
+				inf_char_str_lit(&new_str, helper_str[j]);
 				if(EXIT_CODE != 0)
 				{
 					return;
