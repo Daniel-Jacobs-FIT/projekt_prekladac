@@ -35,6 +35,8 @@ int psa_stack_split_top(stack_t* );
 
 int psa_stack_push(stack_t *, token_t *);
 
+int push_all_tokens_to_stack(stack_t *);
+
 int psa_stack_pop(stack_t *);
 
 void psa_stack_dispose(stack_t *);

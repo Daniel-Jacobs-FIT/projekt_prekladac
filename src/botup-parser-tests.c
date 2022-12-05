@@ -5,6 +5,8 @@
 	free_token(token2);\
 	free_token(token3);\
 
+int NEXT_TOKEN_INDEX = 0;   //globalni promenna urcujici index pristiho tokenu
+                            //v globalnim zasobniku tokenu
 
 
 void print_table(const prec_table_t table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS]) {
@@ -116,13 +118,23 @@ int main() {
         bst_insert(&table, alloced_key, var_id, alloced_type);
     }
 
+    stack_t *global_token_stack = psa_stack_init();
+
+    push_all_tokens_to_stack(global_token_stack);
+    if(EXIT_CODE != 0) {
+        psa_stack_dispose(global_token_stack);
+        return EXIT_CODE;
+    }
+
     bst_node_t *returned_ptr;
 
-    token_t *first_token = get_token();
+    NEXT_TOKEN_INDEX++;
+
     do {
-        returned_ptr = bottom_up_parser(first_token, &table, false, true , ass_table);
-        first_token = get_token();
-    } while (first_token->variant != end_prg_var && first_token->variant != err_var);
+        NEXT_TOKEN_INDEX--;
+        returned_ptr = bottom_up_parser(global_token_stack, &NEXT_TOKEN_INDEX, &table, false, true , ass_table);
+    } while (next_stack_token(global_token_stack, &NEXT_TOKEN_INDEX)->variant != end_prg_var);
+
     fprintf(stdout, "Exit code = %d\n", EXIT_CODE);
     return EXIT_CODE;
 }

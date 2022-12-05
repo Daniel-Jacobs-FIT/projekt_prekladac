@@ -128,6 +128,36 @@ int psa_stack_push(stack_t *stack, token_t *item) {
 	return 1;
 }
 
+//Funkce napushuje vsechny tokeny na vstupu do globalniho zasobniku tokenu
+int push_all_tokens_to_stack(stack_t *stack)
+{
+	token_t *token = NULL;
+	while((token = get_token())->variant != end_prg_var)
+	{
+		if(token->variant == err_var)
+		{
+			psa_stack_dispose(stack);
+			return 2;
+		}
+		if(psa_stack_push(stack, token) == -1)
+		{
+			//realloc error
+			psa_stack_dispose(stack);
+			return 1;
+		}
+	}
+	//add the end_prg_var into the stack
+	if(psa_stack_push(stack, token) == -1)
+	{
+		//realloc error
+		psa_stack_dispose(stack);
+		return 1;
+	}
+
+	return 0;
+}
+
+
 int psa_stack_split_top(stack_t *stack) {
     token_t *less_prec = create_token(NULL, less_prec_var, 0);
 
