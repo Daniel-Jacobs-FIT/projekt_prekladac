@@ -19,8 +19,10 @@ make a frame (table of symbols) for checking if variables are being defined or t
 It seems like I only should eat tokens (increment the "stack" index) when I find it in a terminal, cause I dont know what all it can be
 --- prob more but this is what I can think of ATM
 */
-int ASG_nt(stack_t *, bst_node_t **);
-int STAT_nt(stack_t *, bst_node_t **);
+int FCALL_nt(stack_t *, bst_node_t **, bst_node_t **, char *);
+int TL_nt(stack_t *, char *, bst_node_t **);
+int ASG_nt(stack_t *, bst_node_t **, bst_node_t **);
+int STAT_nt(stack_t *, bst_node_t **, bst_node_t **);
 int PL_nt(stack_t *, char *, bst_node_t **);
 int SS_nt(stack_t *, bst_node_t **);
 int FDEF_nt(stack_t *, bst_node_t **);
@@ -401,18 +403,18 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
 	{
 		ASG_nt(stack, global_symbtab, NULL);
 	}
-	
+	return 0;
 }
 
 int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
 {
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-	printf("%s ");
+	printf("%s ", token->content);
 	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	if(token->variant == eq_var)
 	{
 		printf(" = ");
-		token = psa_stack_get_nth_rev(stack, &GET_NEXT_TOKEN_INDEX);
+		token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 		if(token->variant == identif_function_var)
 		{
 			char *data_type = (char *)malloc(1);
@@ -430,6 +432,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
 	{
 		//TODO ERROR EXPECTED '=' CHAR
 	}
+	return 0;
 }
 
 int SS_nt(stack_t *stack, bst_node_t **symbtab)
@@ -466,92 +469,139 @@ int SS_nt(stack_t *stack, bst_node_t **symbtab)
 
 /* } */
 
-int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab, char *data_type)
+int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab, char *return_type)
 {
-	//token variant has to be an identif_function_var	
+	//token variant has to be an identif_function_var ie. the f_id
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX), *searched_token = NULL;
 	bst_node_t *searched_node = NULL;
-	printf("%s ", token->content);
-	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-	if(token->variant == identif_function_var)
+	char *types = (char *)malloc(1);
+	if(types == NULL)
 	{
-		if(local_symbtab == NULL)
+		//TODO MALLOC FAILED
+	}
+	types[0] = '\0';
+	printf("%s ", token->content);
+	if(local_symbtab == NULL)
+	{
+		//in global scope
+		if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
 		{
-			//in global scope
-			if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
+			//TODO ERROR FUNCTION IS NOT DEFINED
+		}
+		else
+		{
+			if(return_type != NULL)
 			{
-				//TODO ERROR FUNCTION IS NOT DEFINED
+				inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
+			}
+			printf("%s ", token->content);
+			//TODO check if return is ok
+			//the next stack token is the thing after f_id ie. '(' char
+			TL_nt(stack, searched_node->data_type, global_symbtab);
+		}
+	}
+	else //in local scope
+	{
+		//node is not found in global symbtab, so we check stack)
+		if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
+		{
+			int found = 0;
+			for(int i = GET_NEXT_TOKEN_INDEX; i <= stack->top; i++)
+			{
+				searched_token = psa_stack_get_nth_rev(stack, i);
+				if(searched_token->variant == identif_function_var)
+				{
+					found = 1;
+					for(int j = i; j <= stack->top; j++)
+					{
+						searched_token = psa_stack_get_nth_rev(stack, j);
+						if(searched_token->variant == identif_keyword_var)
+						{
+							inf_char_str(types, searched_token->content[0]);
+							//TODO check inf char errors
+						}
+						else if(searched_token->variant == cls_rnd_var)
+						{
+							//+2 so we skip the expected ':' and check the return type
+							searched_token = psa_stack_get_nth_rev(stack, j+2);
+							if(searched_token->variant == identif_keyword_var)
+							{
+								inf_char_str(types, searched_token->content[0]);
+							}
+							else
+							{
+								//TODO ERROR EXPECTED KEYWORD AS A RETURN
+							}
+							//end the search
+							goto end_loop;
+						}//else skip it (ie we skip variable names)
+					}
+				}
+			}
+end_loop:
+			if(!found)
+			{
+				//TODO ERROR FID IS NOT FOUND
 			}
 			else
 			{
-				if(data_type != NULL)
+				if(return_type != NULL)
 				{
-					inf_char_str(data_type, searched_node->data_type[strlen(searched_node->data_type)-1])
+					inf_char_str(return_type, types[strlen(types)-1]);
 				}
-				printf("%s ", token->content);
-				//TODO check if return is ok
-				TL_nt(stack, searched_node, NULL, global_symbtab);
+				TL_nt(stack, types, local_symbtab);
 			}
 		}
-		else //in local scope
+		else //when in local scope, but we do find the definition in global symbtab
 		{
-			//node is not found in global symbtab, so we check stack)
-			if((searched_node = bst_search((*global_symbtab), token->content)) == NULL){
-				for(int i = GET_NEXT_TOKEN_INDEX; i <= stack->top; i++)
-				{
-					//find the correct function id
-					if(strcmp(token->content, psa_stack_get_nth_rev(stack, i)->content) == 0)
-					{
-						printf("%s ", token->content);
-						for(int j = i; j <= stack->top; j++)
-						{
-							if(psa_stack_get_nth_rev(stack, j)->variant == colon_var)
-							{
-								searched_token = psa_stack_get_nth_rev(stack, j+1);
-								if(searched_token->variant != identif_keyword_var)
-								{
-									//TODO ERROR EXPECTED KEYWORD VAR WHEN LOOKING FOR FUNCTION DEFINITION
-								}
-								else
-								{
-									if(data_type == != NULL)
-									{
-										inf_char_str(data_type, searched_token->content[strlen(searched_token->content)-1]);
-									}
-									TL_nt(stack, NULL, searched_token, local_symbtab);
-								}
-							}
-						}
-					}
-				}
-				//TODO ERROR FUNCTION DEFINITION NOT FOUND
-			}
-			else //when in local scope, but we do find the definition in global symbtab
+			if(return_type != NULL)
 			{
-				if(data_type != NULL)
-				{
-					inf_char_str(data_type, searched_node->data_type[strlen(searched_node->data_type)-1])
-				}
-				printf("%s ", token->content);
-				TL_nt(stack, searched_node, NULL, local_symbtab);
+				inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
+			}
+			printf("%s ", token->content);
+			TL_nt(stack, searched_node->data_type, local_symbtab);
+		}
+	}
+	return 0;
+}
+
+//only one symbtab because I am calling it from different places and it doesnt have to look "out of scope"
+//TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
+int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
+{
+	/*
+	rn the next_stack function should return a open_rnd_var (but I should check for that)
+	I definitly have to check a do of things: 
+		- first I need to get all the params, ie parse them
+		- every param that I parse I need to check:
+			a) if it exists in this scope (if its a var)
+			b) if it matches the param data type found in "types"
+		- at the end I need to check if the amount of parameters matches the amount found in "types"
+	*/
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX), *searched_token = NULL;
+	if(token->variant == open_rnd_var)
+	{
+		while((token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX))->variant != cls_rnd_var)
+		{
+			switch(token->variant)
+			{
+				case identif_variable_var:
+					break;
+				case integ_var:
+					break;
+				case float_var:
+					break;
+				case string_lit_end_var:
+					break;
+				default:
+					break;
 			}
 		}
 	}
 	else
 	{
-		//TODO ERROR EXPECTED FUNCTION ID
+		//TODO ERROR EXPECTED '(' CHAR
 	}
-}
-
-//only one symbtab because I am calling it from different places and it doesnt have to look "out of scope"
-//TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
-int TL_nt(stack_t *stack, bst_node_t *node, char *types, bst_node_t **symbtab)
-{
-	/*I definitly have to check a do of things: 
-		- first I need to get all the params, ie parse them
-		- every param that I parse I need to check:
-			a) if it exists in this scope (if its a var)
-			b) if it matches the param data type found either in node or token
-	*/
+	return 0;
 }
 
