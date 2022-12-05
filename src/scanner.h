@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include "utils.h"
 
 #ifndef SCANNER_H_
 #define SCANNER_H_
@@ -75,10 +76,11 @@ token_t *get_token();
 
 token_t *create_token(char* content, token_var variant, int line_num);
 
+token_t *create_token_from_lit(char *, token_var, int);
+
 void print_token(token_t *token);
 
 void free_token(token_t *token);
 
-token_t *create_token_from_lit(char *, token_var, int);
 
 #endif

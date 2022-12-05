@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "scanner.h"
+#include "utils.h"
 
 /*
 Implementace stacku, jako dynamickeho pole

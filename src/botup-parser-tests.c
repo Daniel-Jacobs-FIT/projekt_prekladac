@@ -56,6 +56,7 @@ void test_rand_names() {
 }
 
 void test_parse_switch() {
+    char frame_name[] = "GF";
 	token_t *token1 = NULL;
 	token_t *token2 = NULL;
 	token_t *token3 = NULL;
@@ -65,9 +66,9 @@ void test_parse_switch() {
 	token2 = create_token_from_lit("1.1254698e+3", float_var, 16);
 	token3 = create_token_from_lit("1523654.02E-4", float_var, 17);
 	
-	parse_switch(token1);
-	parse_switch(token2);
-	parse_switch(token3);
+	parse_switch(token1, frame_name);
+	parse_switch(token2, frame_name);
+	parse_switch(token3, frame_name);
 
 	FREE_THREE_TOKENS;
 	//string tests
@@ -75,9 +76,9 @@ void test_parse_switch() {
 	token2 = create_token_from_lit("HELLO\nWorld", string_lit_end_var, 19);
 	token3 = create_token_from_lit("INS ANE\tTA B\\S\tA#N#D\nN EW\tL\\I\\N ES\n", string_lit_end_var, 20);
 	
-	parse_switch(token1);
-	parse_switch(token2);
-	parse_switch(token3);
+	parse_switch(token1, frame_name);
+	parse_switch(token2, frame_name);
+	parse_switch(token3, frame_name);
 	
 	FREE_THREE_TOKENS;
 	
@@ -85,21 +86,43 @@ void test_parse_switch() {
 	token2 = create_token_from_lit("123456789987654321", integ_var, 19);
 	token3 = create_token_from_lit("-123456", integ_var, 20);
 
-	parse_switch(token1);
-	parse_switch(token2);
-	parse_switch(token3);
+	parse_switch(token1, frame_name);
+	parse_switch(token2, frame_name);
+	parse_switch(token3, frame_name);
 	
 	FREE_THREE_TOKENS;
 }
 
+char *DEFINED_VAR_KEYS[] = {"$my_number", "$my_word", "$secret_float"};
+char DEFINED_VAR_TYPES[] = {'i', 's', 'f'};
+int NUM_OF_DEFINED_VARS = 3;
+
 int main() {
+
+    EXIT_CODE = 0;
+
     bst_node_t *table; 
     bst_init(&table);   //prazdna tabulka symbolu
 
+    //nastrkani nejakych promennych do tabulky symbolu
+    char *alloced_key;
+    char *alloced_type;
+    for(int i = 0; i < NUM_OF_DEFINED_VARS; i++) {
+        alloced_key = (char *)malloc((14 + 1) * sizeof(char));
+        alloced_type =(char *)malloc((1 + 1) * sizeof(char));
+        strcpy(alloced_key, DEFINED_VAR_KEYS[i]);
+        alloced_type[0] = DEFINED_VAR_TYPES[i];
+        
+        bst_insert(&table, alloced_key, var_id, alloced_type);
+    }
+
+    bst_node_t *returned_ptr;
+
     token_t *first_token = get_token();
     do {
-        bottom_up_parser(first_token, &table, false, true, ass_table);
+        returned_ptr = bottom_up_parser(first_token, &table, false, true , ass_table);
         first_token = get_token();
-    } while (first_token->variant != end_prg_var);
-    return 0;
+    } while (first_token->variant != end_prg_var && first_token->variant != err_var);
+    fprintf(stdout, "Exit code = %d\n", EXIT_CODE);
+    return EXIT_CODE;
 }

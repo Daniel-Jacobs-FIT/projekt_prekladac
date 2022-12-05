@@ -1,0 +1,5 @@
+DEFVAR GF@_expression383
+MOVE GF@_expression383 GF@$my_word
+Chyba na řádku: 1
+Použití nedefinované proměnné $ummmmidk
+Exit code = 5

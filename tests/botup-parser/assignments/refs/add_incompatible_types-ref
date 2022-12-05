@@ -1,0 +1,14 @@
+Chyba v datovém typu operandů na řádku: 2
+_expression793 nelze implicitně konvertovat na číslo
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@5
+DEFVAR GF@_expression886
+MOVE GF@_expression886 int@5
+DEFVAR GF@_expression777
+ADD GF@_expression777 GF@_expression383 GF@_expression886
+
+DEFVAR GF@_expression915
+MOVE GF@_expression915 int@3
+DEFVAR GF@_expression793
+MOVE GF@_expression793 string@str
+Exit code = 7

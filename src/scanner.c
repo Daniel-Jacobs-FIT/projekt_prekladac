@@ -1,4 +1,3 @@
-//#include <string.c> //docasne pro vyvoj string.c
 #include <string.h>
 #include <math.h>
 #include "scanner.h"
@@ -9,31 +8,17 @@ const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
 
 /*makro pro vypsani chybove hlasky pri ziskani neznameho znaku*/
-#define ERR_CASE(NAME)\
-{\
+#define ERR_CASE\
 	token->variant = err_var;\
-	state_err(NAME, input, token->line_num);\
-	return default_s;\
-}
+	fsm_state = default_s;
 
 /*makro pro testovani jestli prosel malloc nebo realloc*/
-#define MALLOC_CHECK(NAME)\
-if(NAME == NULL)\
+#define MALLOC_CHECK(PTR)\
+if(PTR == NULL)\
 {\
-	fprintf(stderr, "failed to allocate memory\n");\
+    fprintf(stderr, "Chyba alokace paměti!\n");\
+    EXIT_CODE = 99;\
 	return 1;\
-}
-
-//vytvoreni tokenu s contentem ktery je retezcovy literal
-token_t *create_token_from_lit(char *content, token_var variant, int line_num)
-{
-	token_t *token = (token_t *)malloc(sizeof(token_t));
-	char *token_content = (char *)malloc(strlen(content)+1);
-	strcpy(token_content, content);
-	token->content = token_content;
-	token->line_num = line_num;
-	token->variant = variant;
-	return token;
 }
 
 int inf_char_input(int input, token_t *token)
@@ -58,36 +43,14 @@ int inf_char_input(int input, token_t *token)
 	return 0;
 }
 
-/*
-funkce na vypisovani error message pri ziskani neplatneho charu
-	param: fce_name -> jmeno funkce ve ktere byl char precten
-	param: err_char -> character ktery zpusobil chybu
-	param: line_num -> cislo radku na kterem byla chyba zpusobena
-*/
-void state_err(char *fce_name, int err_char, int line_num)
-{
-	printf("Error: in function %s: unexpected ", fce_name);
-	if(err_char == EOF)
-	{
-		printf("EOF at line %d\n", line_num);
-	}
-	else if(err_char == 10)
-	{
-		printf("'new line' at line %d\n", line_num);
-	}
-	else
-	{	
-		printf("char '%c' at line %d\n", err_char, line_num);
-	}
-}
-
 /* Funkce pro logiku fsm */
 scanner_state_t float_e_num_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+    scanner_state_t fsm_state;
+	if(EXIT_CODE != 0)  //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+		ERR_CASE
+        return fsm_state;
 	}
 
 	input = getc(stdin);
@@ -105,30 +68,38 @@ scanner_state_t float_e_num_logic(int input, token_t *token)
 
 scanner_state_t float_e_sign_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+    scanner_state_t fsm_state;
+    inf_char_input(input, token);
+	if(EXIT_CODE != 0)   //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+		ERR_CASE
+        return fsm_state;
 	}
 
 	input = getc(stdin);
 	if(input >= '0' && input <= '9')
 	{
 		ungetc(input, stdin);
-		return float_e_num_s;
+		fsm_state = float_e_num_s;
 	}
-	else
+	else    //chyba v lexemu
 	{
-		ERR_CASE("float_e_sign_logic");
+        EXIT_CODE = 1;
+        fprintf(stderr, "Chyba v lexému %s na řádku: %d\nNevalidní exponent\n",
+                token->content, token->line_num);
+		ERR_CASE
 	}
+    return fsm_state;
 }
 
 scanner_state_t float_e_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+	scanner_state_t fsm_state;
+    inf_char_input(input, token);
+	if(EXIT_CODE != 0)  //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+        ERR_CASE
+        return fsm_state;
 	}
 
 	input = getc(stdin);
@@ -137,26 +108,32 @@ scanner_state_t float_e_logic(int input, token_t *token)
 		case '+':
 		case '-':
 			ungetc(input, stdin);
-			return float_e_sign_s;
+			fsm_state = float_e_sign_s;
+            break;
 		default:
 			if(input >= '0' && input <= '9')
 			{
 				ungetc(input, stdin);
-				return float_e_num_s;
+				fsm_state = float_e_num_s;
 			}
 			else
 			{
-				ERR_CASE("float_e_logic");
+                EXIT_CODE = 1;
+                fprintf(stderr, "Chyba v lexému %s na řádku: %d\nNevalidní exponent\n",
+                        token->content, token->line_num);
+                ERR_CASE
 			}
 	}
+    return fsm_state;
 }
 
 scanner_state_t float_dot_num_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+	scanner_state_t fsm_state;
+	if(EXIT_CODE != 0)  //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+          ERR_CASE
+          return fsm_state;
 	}
 	input = getc(stdin);
 	switch(input)
@@ -180,29 +157,36 @@ scanner_state_t float_dot_num_logic(int input, token_t *token)
 }
 scanner_state_t float_dot_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+	scanner_state_t fsm_state;
+	if(EXIT_CODE != 0)  //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+        ERR_CASE
+        return fsm_state;
 	}
 	
 	input = getc(stdin);
 	if(input >= '0' && input <= '9')
 	{
 		ungetc(input, stdin);
-		return float_dot_num_s;
+		fsm_state = float_dot_num_s;
 	}else
 	{
-		ERR_CASE("float_dot_logic");
+        EXIT_CODE = 1;
+        fprintf(stderr, "Chyba v lexému %s na řádku: %d\nNevalidní desetinná část\n",
+                token->content, token->line_num);
+        ERR_CASE
 	}
+    return fsm_state;
 }
 
 scanner_state_t integ_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+    inf_char_input(input, token);
+	scanner_state_t fsm_state;
+	if(EXIT_CODE != 0)  //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+          ERR_CASE
+          return fsm_state;
 	}
 
 	input = getc(stdin);
@@ -232,10 +216,12 @@ scanner_state_t integ_logic(int input, token_t *token)
 
 scanner_state_t identif_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+    inf_char_input(input, token);
+	scanner_state_t fsm_state;
+	if(EXIT_CODE != 0)  //selhani alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+          ERR_CASE
+          return fsm_state;
 	}
 
 	input = getc(stdin);
@@ -267,13 +253,19 @@ scanner_state_t identif_logic(int input, token_t *token)
 			}
 			else
 			{
+                if(token->content[0] == '?') {
+                    EXIT_CODE = 1;
+                    fprintf(stderr, "Chyba v lexému %s na řádku: %d\nNevalidní identifikátor\n",
+                            token->content, token->line_num);
+                    ERR_CASE
+                }
                 token->variant = identif_function_var;
 			}
 		}
-		else
-		{
-			token->variant = identif_variable_var;
-		}
+        else
+        {
+            token->variant = identif_variable_var;
+        }
 		//should run always
 		ungetc(input, stdin);
 		return default_s;
@@ -283,12 +275,17 @@ scanner_state_t identif_logic(int input, token_t *token)
 scanner_state_t expect_eof_logic(token_t *token)
 {
 	int input = getc(stdin);
+	scanner_state_t fsm_state;
 	switch(input)
 	{
 		case EOF:
 			return end_prg_s;
 		default:
-			ERR_CASE("expect_eof_logic");
+            EXIT_CODE = 1;
+            fprintf(stderr, "Chyba v lexému %s na řádku: %d\nOčekáván konec souboru\n",
+                    token->content, token->line_num);
+            ERR_CASE
+            return fsm_state;
 	}
 }
 
@@ -301,6 +298,7 @@ scanner_state_t end_prg_logic(token_t *token)
 scanner_state_t end_sign_logic(token_t *token)
 {
 	int input = getc(stdin);
+	scanner_state_t fsm_state;
 	switch(input)
 	{
 		case EOF:
@@ -309,16 +307,22 @@ scanner_state_t end_sign_logic(token_t *token)
 			ungetc(input, stdin);
 			return expect_eof_s;
 		default:
-			ERR_CASE("end_sign_logic");	
+            EXIT_CODE = 1;
+            fprintf(stderr, "Chyba v lexému %s na řádku: %d\nOčekáván konec souboru\n",
+                    token->content, token->line_num);
+            ERR_CASE
+            return fsm_state;
 	}
 }
 
 scanner_state_t id_or_end_logic(int input, token_t *token)
 {
-	if(inf_char_input(input, token) != 0)
+	scanner_state_t fsm_state;
+    inf_char_input(input, token);
+	if(EXIT_CODE != 0)  //chyba alokace pameti
 	{
-		//memory allocation failed
-		return -1;
+        ERR_CASE
+        return fsm_state;
 	}
 
 	input = getc(stdin);
@@ -340,7 +344,11 @@ scanner_state_t id_or_end_logic(int input, token_t *token)
 			}
 			else
 			{
-				ERR_CASE("id_or_end_logic");
+                EXIT_CODE = 1;
+                fprintf(stderr, "Chyba v lexému %s na řádku: %d\nOčekáván identifikátor nebo ?>\n",
+                        token->content, token->line_num);
+                ERR_CASE
+                return fsm_state;
 			}
 	}
 }
@@ -349,6 +357,7 @@ scanner_state_t default_logic(int input, token_t *token)
 {
 	int cmp = input;
 	ungetc(input, stdin);
+	scanner_state_t fsm_state;
 	switch(cmp)
 	{
 		case '/':
@@ -420,7 +429,11 @@ scanner_state_t default_logic(int input, token_t *token)
 				return integ_s;
 			}else
 			{
-				ERR_CASE("default_logic");
+                EXIT_CODE = 1;
+                fprintf(stderr, "Chyba v lexému %s na řádku: %d\nNeočekávaný znak: %c\n",
+                        token->content, token->line_num, cmp);
+                ERR_CASE
+                return fsm_state;
 			}
 	}
 }
@@ -443,6 +456,7 @@ bool string_check(char *sign) {
     }
 }
 
+/* Funkce pro zpracovani oktalovych sekvenci v retezcovych literalech */
 bool oct_sequence(int input, token_t *token) {
 	char position1 = input; //musi byt 0-3, jinak se nedostane do stavu oct_sequence
 	char position2 = getc(stdin);
@@ -565,8 +579,10 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
 			else if(input == EOF){
-				fsm_state = default_s;
-				ERR_CASE("com_block_s");
+                EXIT_CODE = 1;
+                fprintf(stderr, "Neukončený blokový komentář na řádku: %d\n",
+                        token->line_num);
+                ERR_CASE
 				break;
 			}
 			else if(input == '\n'){
@@ -614,16 +630,20 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
 			ungetc(input,stdin);
-			fsm_state = default_s;
-			ERR_CASE("not_eq1_s");
+            EXIT_CODE = 1;
+            fprintf(stderr,"Neplatný lexém '!%c' na řádku: %d\n",
+                    input, token->line_num);
+            ERR_CASE
             break;
         case not_eq2_s :
             if(input == '='){
                 fsm_state=not_eq3_s;
                 break;
             }
-			fsm_state = default_s;
-			ERR_CASE("not_eq2_s");
+            EXIT_CODE = 1;
+            fprintf(stderr,"Neplatný lexém '!=%c' na řádku: %d\n",
+                    input, token->line_num);
+            ERR_CASE
             break;
         case not_eq3_s :
 			ungetc(input,stdin);
@@ -646,7 +666,10 @@ scanner_state_t fsm_step(int input, token_t *token) {
             }
 			ungetc(input,stdin);
 			fsm_state = default_s;
-            ERR_CASE("eq2_s");
+            EXIT_CODE = 1;
+            fprintf(stderr,"Neplatný lexém '==%c' na řádku: %d\n",
+                    input, token->line_num);
+            ERR_CASE
             break;
             
         case eq3_s :
@@ -736,11 +759,16 @@ scanner_state_t fsm_step(int input, token_t *token) {
                     token->line_num++;
                 }
                 else if(input < 31) {
-				    ERR_CASE("Invalid characters");
+                    EXIT_CODE = 1;
+                    fprintf(stderr,"Neplatný znak %c v řetězcovém literálu %s na řádku: %d\n",
+                            input, token->content, token->line_num);
+                    ERR_CASE
                     break;
                 }
-				if(inf_char_input(input, token) != 0)
-					return -1;
+                inf_char_input(input, token);
+				if(EXIT_CODE != 0) {
+                    ERR_CASE
+                }
 			} 	
             break;
             
@@ -753,51 +781,43 @@ scanner_state_t fsm_step(int input, token_t *token) {
 					//Cisla pro input jsou ASCII kody pozadovanych znaku
 					case 'n': 
 						inf_char_input(10, token); //newline
-						fsm_state = string_lit_s;
 						break;
 					case 'r':
 						inf_char_input(13, token); //carriage return
-						fsm_state = string_lit_s;
 						break;
 					case 't': 
 						inf_char_input(9, token); //tab
-						fsm_state = string_lit_s;
 						break;
 					case 'v': 
 						inf_char_input(11, token); //vertical tab
-						fsm_state = string_lit_s;
 						break;
 					case 'e': 
 						inf_char_input(27, token); //escape
-						fsm_state = string_lit_s;
 						break;
 					case '\\': 
 						inf_char_input(input, token); //backslash
-						fsm_state = string_lit_s;
 						break;
 					case '$': 
 						inf_char_input(input, token); //dollar sign
-						fsm_state = string_lit_s;
 						break;
 					case '"': 
 						inf_char_input('\\', token); //uvozovky
 						inf_char_input('"', token); //uvozovky
-						fsm_state = string_lit_s;
 						break;
 					default:
 						ungetc(input, stdin);
-						fsm_state = string_lit_s;
 
 
 				}
                 fsm_state = esc_seq_s;
+                if(EXIT_CODE != 0) {
+                    ERR_CASE
+                }
                 break;
             }
             
 			else if(strchr("x", input) != NULL) { //hex sequence
                 fsm_state = hex1_s;
-				/* Zde zavolat oct_sequence funkci pro zpracovani cisla */
-                //decimal = 0;
                 break;
             }
             else if(strchr("0123", input) != NULL){ //octal sequence
@@ -806,15 +826,12 @@ scanner_state_t fsm_step(int input, token_t *token) {
 					inf_char_input(input, token);
 				}
 				fsm_state = string_lit_s;
-                //fsm_state = oct1_s;
-				/* Zde zavolat oct_sequence funkci pro zpracovani cisla */
-
-                //decimal = 0;
-                //to_decimal(input, 8, 2);
+                if(EXIT_CODE != 0) {
+                    ERR_CASE
+                }
                 break;
             }
             else {
-
                 fsm_state = string_lit_s;
                 break;
             }
@@ -829,14 +846,16 @@ scanner_state_t fsm_step(int input, token_t *token) {
                 break;
             }
             else {
-				if(inf_char_input(input, token) != 0)
-					return -1;
+			    inf_char_input(input, token);
+                if(EXIT_CODE != 0) {
+                    ERR_CASE
+                }
                 fsm_state = string_lit_s;
                 break;
             }
-
-		//TODO - Dokoncit prevedeni na HEX a OCT sequence funkce
-        case hex1_s :
+        case oct1_s:
+            break;
+        case hex1_s:
         
             //if (strchr("0123456789aAbBcCdDeEfF", input) != NULL) {
 				//Pokud to neni valid hex sekvence, nacte momentalni znak
@@ -848,45 +867,79 @@ scanner_state_t fsm_step(int input, token_t *token) {
 					inf_char_input(input, token);
 			}
 			fsm_state = string_lit_s;
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
-           
-        case oct1_s : //DELETE THIS
-			break;
-	
         case integ_s :
 			fsm_state = integ_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case float_dot_s :
+            inf_char_input(input, token);
 			fsm_state = float_dot_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case float_dot_num_s :
+            inf_char_input(input, token);
 			fsm_state = float_dot_num_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case float_e_s :
 			fsm_state = float_e_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case float_e_sign_s :
             fsm_state = float_e_sign_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
 			break;
         case float_e_num_s :
             fsm_state = float_e_num_logic(input, token);
+            inf_char_input(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case id_or_end_s :
 			fsm_state = id_or_end_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case identif_s :
 			fsm_state = identif_logic(input, token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
         case end_sign_s :
 			fsm_state = end_sign_logic(token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
 		case expect_eof_s :
 			fsm_state = expect_eof_logic(token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
 			break;
         case end_prg_s :
 			fsm_state = end_prg_logic(token);
+            if(EXIT_CODE != 0) {
+                ERR_CASE
+            }
             break;
-        //TODO lze zjednodusit -> sloucit stavy, obsluha EOF, obsluha chyby, ...
     }  
     return fsm_state;
 }
@@ -918,11 +971,35 @@ token_t *get_token() {
  * */
 token_t *create_token(char* content, token_var variant, int line_num) {
     token_t *token = (token_t *)malloc(sizeof(token_t));
-    token->content = content;
-    token->variant = variant;
-    token->line_num = line_num;
+    if(token == NULL) { //chyba alokace pameti
+        EXIT_CODE = 99;
+        free(content);
+    } else {
+        token->content = content;
+        token->variant = variant;
+        token->line_num = line_num;
+    }
     return token;
 }
+
+//vytvoreni tokenu s contentem ktery je retezcovy literal
+token_t *create_token_from_lit(char *content, token_var variant, int line_num)
+{
+	token_t *token = (token_t *)malloc(sizeof(token_t));
+	char *token_content = (char *)malloc(strlen(content)+1);
+    if(token == NULL || token_content == NULL) { //chyba alokace pameti
+        EXIT_CODE = 99;
+        free(token_content);    //free(null) neprovede zadnou operaci
+        free(token);
+    } else {
+        strcpy(token_content, content);
+        token->content = token_content;
+        token->line_num = line_num;
+        token->variant = variant;
+    }
+	return token;
+}
+
 
 /* Funkce pro vypsani tokenu, pro debugovaci ucely
  * token = ukazatel na token, ktery se ma vypsat

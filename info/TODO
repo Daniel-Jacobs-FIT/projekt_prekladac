@@ -2,13 +2,16 @@ HOTOVO: Upravit tabulku symbolu, predelat vsecky funkce, aby odpovidaly novemu s
 
 HOTOVO: Navrhnout precedencni tabulku.
 
-Naprogramovat zasobnik pro analyzu zdola nahoru
+HOTOVO Naprogramovat zasobnik pro analyzu zdola nahoru
 
-Udelat testy na zasobnik
+HOTOVO: Udelat testy na zasobnik
 
-Naprogramovat analyzu zdola nahoru - vyresit predavani tokenu, atd.
+HOTOVO Zavest utils.h - nastavovani error kodu a radne ukoncovani programu - uklid...
 
-Naprogramovat kostru rekurzivniho sestupu
-    -> vyresit jak se budou predavat tokeny -> rozhodovani se na zaklade dalsiho tokenu, nutne jej hodit do prislusne funkce
+Napsat testy i pro conditions - nutne upravit botup-parser-tests.c
 
-Vyresit predavani rizeni Top-bottom <-> Bottom-top
+Naprogramovat pravidla s porovnavacimi operatory
+
+Napsat hloubkove testy pro bottom-up parser
+
+Udelat top-down parser

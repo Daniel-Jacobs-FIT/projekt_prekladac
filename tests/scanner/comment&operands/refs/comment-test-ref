@@ -1,7 +1,6 @@
+Neukončený blokový komentář na řádku: 8
 Token:"" Variant:add_oper_var Line:2
 Token:"" Variant:div_oper_var Line:2
 Token:"" Variant:sub_oper_var Line:2
 Token:"" Variant:add_oper_var Line:3
-Error: in function com_block_s: unexpected EOF at line 8
 Token:"" Variant:err_var Line:8
-Token:"" Variant:end_prg_var Line:8

@@ -86,6 +86,8 @@ void bst_insert_many_f(bst_node_t **tree, char keys[][10], char types[][4]) {
 
 int main(int argc, char *argv[]) {
 
+    EXIT_CODE = 0;
+
     bst_node_t *testing_tree;
     bst_node_t *found_node;
 
@@ -131,5 +133,5 @@ int main(int argc, char *argv[]) {
     bst_delete(&testing_tree, sample_keys[1]);
     DISPOSE
 
-    return 0;
+    return EXIT_CODE;
 }

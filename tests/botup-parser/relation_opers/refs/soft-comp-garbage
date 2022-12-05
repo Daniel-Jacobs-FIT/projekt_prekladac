@@ -1,0 +1,10 @@
+Chyba na řádku: 1
+Řetězec nelze porovnávat s číslem nebo booleanem
+DEFVAR GF@_expression383
+MOVE GF@_expression383 string@my_string
+DEFVAR GF@_expression886
+MOVE GF@_expression886 int@69
+DEFVAR GF@_expression777
+DEFVAR GF@_expression915
+DEFVAR GF@_expression793
+Exit code = 7

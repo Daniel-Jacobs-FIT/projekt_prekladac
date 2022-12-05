@@ -1,0 +1,47 @@
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@3
+DEFVAR GF@_expression886
+MOVE GF@_expression886 int@4
+DEFVAR GF@_expression777
+DEFVAR GF@_expression915
+DEFVAR GF@_expression793
+LT GF@_expression915 GF@_expression383 GF@_expression886
+EQ GF@_expression793 GF@_expression383 GF@_expression886
+OR GF@_expression777 GF@_expression915 GF@_expression793
+
+DEFVAR GF@_expression335
+MOVE GF@_expression335 int@10
+DEFVAR GF@_expression386
+MOVE GF@_expression386 nil@nil
+DEFVAR GF@_expression492
+DEFVAR GF@_expression649
+DEFVAR GF@_expression421
+MOVE GF@_expression386 int@0
+GT GF@_expression649 GF@_expression335 GF@_expression386
+EQ GF@_expression421 GF@_expression335 GF@_expression386
+OR GF@_expression492 GF@_expression649 GF@_expression421
+
+DEFVAR GF@_expression362
+MOVE GF@_expression362 string@string1
+DEFVAR GF@_expression27
+MOVE GF@_expression27 string@string2
+DEFVAR GF@_expression690
+DEFVAR GF@_expression59
+DEFVAR GF@_expression763
+GT GF@_expression59 GF@_expression362 GF@_expression27
+EQ GF@_expression763 GF@_expression362 GF@_expression27
+OR GF@_expression690 GF@_expression59 GF@_expression763
+
+DEFVAR GF@_expression926
+MOVE GF@_expression926 int@3
+DEFVAR GF@_expression540
+MOVE GF@_expression540 float@0x1.acccccccccccdp+2
+DEFVAR GF@_expression426
+DEFVAR GF@_expression172
+DEFVAR GF@_expression736
+INT2FLOAT GF@_expression926 GF@_expression926
+LT GF@_expression172 GF@_expression926 GF@_expression540
+EQ GF@_expression736 GF@_expression926 GF@_expression540
+OR GF@_expression426 GF@_expression172 GF@_expression736
+
+Exit code = 0

@@ -58,7 +58,8 @@ void bst_insert(bst_node_t **tree, char *key, symtab_node_t sym_var, char *data_
 		bst_node_t *new_node = (bst_node_t *)malloc(sizeof(bst_node_t));
 		if(new_node == NULL)
 		{
-			fprintf(stderr, "malloc failed\n");
+			fprintf(stderr, "Chyba alokace paměti!\n");
+            EXIT_CODE = 99;
 			return;
 		}
 		new_node->left = NULL;
@@ -81,7 +82,8 @@ void bst_insert(bst_node_t **tree, char *key, symtab_node_t sym_var, char *data_
 			bst_node_t *new_node = (bst_node_t *)malloc(sizeof(bst_node_t));
 			if(new_node == NULL)
 			{
-				fprintf(stderr, "malloc failed\n");
+                fprintf(stderr, "Chyba alokace paměti!\n");
+                EXIT_CODE = 99;
 				return;
 			}
 			new_node->left = NULL;
@@ -103,7 +105,8 @@ void bst_insert(bst_node_t **tree, char *key, symtab_node_t sym_var, char *data_
 			bst_node_t *new_node = (bst_node_t *)malloc(sizeof(bst_node_t));
 			if(new_node == NULL)
 			{
-				fprintf(stderr, "malloc failed\n");
+                fprintf(stderr, "Chyba alokace paměti!\n");
+                EXIT_CODE = 99;
 				return;
 			}
 			new_node->left = NULL;
