@@ -19,8 +19,10 @@ make a frame (table of symbols) for checking if variables are being defined or t
 It seems like I only should eat tokens (increment the "stack" index) when I find it in a terminal, cause I dont know what all it can be
 --- prob more but this is what I can think of ATM
 */
+int ASG_nt(stack_t *, bst_node_t **);
+int STAT_nt(stack_t *, bst_node_t **);
 int PL_nt(stack_t *, char *, bst_node_t **);
-int SS_nt(stack_t *, bst_node_t **, bst_node_t **);
+int SS_nt(stack_t *, bst_node_t **);
 int FDEF_nt(stack_t *, bst_node_t **);
 int SSD_nt(stack_t *, bst_node_t **);
 
@@ -165,15 +167,11 @@ int SSD_nt(stack_t *stack, bst_node_t **global_symbtab)
 			}
 		}else
 		{
-			printf("NOT DEVELOPED YET");
-			return 1;
-			//STAT_nt(stack, global_symbtab);
+			STAT_nt(stack, global_symbtab, NULL);
 		}
 	}else
 	{
-		//STAT_nt(stack, global_symbtab);
-		printf("NOT DEVELOPED YET");
-		return 1;
+		STAT_nt(stack, global_symbtab, NULL);
 	}
 	SSD_nt(stack, global_symbtab);
 	return 0;
@@ -278,7 +276,7 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 							if(token->variant == open_curl_var)
 							{
 								printf("{ \n");
-								if(SS_nt(stack, global_symbtab, local_symbtab) != 0)
+								if(SS_nt(stack, local_symbtab) != 0)
 								{
 									return 1;
 								}
@@ -320,14 +318,8 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 	return 0;
 }
 
-int PL_nt(stack_t *stack, char *types, bst_node_t **local_symbtab)
+int PL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
-	//right now I am expecting one of these:
-	/*
-		PL -> )
-		PL -> par_t id )
-		PL -> par_t id, PL
-	*/
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	if(token->variant == cls_rnd_var)
 	{
@@ -348,7 +340,7 @@ add_param:
 			if(token->variant == identif_variable_var)
 			{
 				//this is what we want to happen
-				bst_insert(local_symbtab, token->content, var_id, type);
+				bst_insert(symbtab, token->content, var_id, type);
 				printf("%s ", token->content);
 			}
 			else
@@ -402,12 +394,45 @@ expected_data_type:
 	return 0;
 }
 
-/* int STAT_nt(stack_t *stack, bst_node_t **global_symbtab) */
-/* { */
+int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
+{
+	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
+	if(token->variant == identif_variable_var)
+	{
+		ASG_nt(stack, global_symbtab, NULL);
+	}
+	
+}
 
-/* } */
+int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
+{
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	printf("%s ");
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	if(token->variant == eq_var)
+	{
+		printf(" = ");
+		token = psa_stack_get_nth_rev(stack, &GET_NEXT_TOKEN_INDEX);
+		if(token->variant == identif_function_var)
+		{
+			char *data_type = (char *)malloc(1);
+			data_type[0] = '\0';
+			FCALL_nt(stack, global_symbtab, local_symbtab, data_type);
+			//bst_insert(symbtab, token->content, var_id, /*return type of the fcall [but how to get it?]*/)
+		}
+		else
+		{
+			//ASG -> id = EXPR
+			//TODO RUN BOTUP PARSER
+		}
+		//assignment can be either local or global, but I dont have to deal with that sice, I only have a single symtab
+	}else
+	{
+		//TODO ERROR EXPECTED '=' CHAR
+	}
+}
 
-int SS_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
+int SS_nt(stack_t *stack, bst_node_t **symbtab)
 {
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	if(token->variant == cls_curl_var)
@@ -441,14 +466,92 @@ int SS_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbta
 
 /* } */
 
-/* int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab) */
-/* { */
+int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab, char *data_type)
+{
+	//token variant has to be an identif_function_var	
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX), *searched_token = NULL;
+	bst_node_t *searched_node = NULL;
+	printf("%s ", token->content);
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	if(token->variant == identif_function_var)
+	{
+		if(local_symbtab == NULL)
+		{
+			//in global scope
+			if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
+			{
+				//TODO ERROR FUNCTION IS NOT DEFINED
+			}
+			else
+			{
+				if(data_type != NULL)
+				{
+					inf_char_str(data_type, searched_node->data_type[strlen(searched_node->data_type)-1])
+				}
+				printf("%s ", token->content);
+				//TODO check if return is ok
+				TL_nt(stack, searched_node, NULL, global_symbtab);
+			}
+		}
+		else //in local scope
+		{
+			//node is not found in global symbtab, so we check stack)
+			if((searched_node = bst_search((*global_symbtab), token->content)) == NULL){
+				for(int i = GET_NEXT_TOKEN_INDEX; i <= stack->top; i++)
+				{
+					//find the correct function id
+					if(strcmp(token->content, psa_stack_get_nth_rev(stack, i)->content) == 0)
+					{
+						printf("%s ", token->content);
+						for(int j = i; j <= stack->top; j++)
+						{
+							if(psa_stack_get_nth_rev(stack, j)->variant == colon_var)
+							{
+								searched_token = psa_stack_get_nth_rev(stack, j+1);
+								if(searched_token->variant != identif_keyword_var)
+								{
+									//TODO ERROR EXPECTED KEYWORD VAR WHEN LOOKING FOR FUNCTION DEFINITION
+								}
+								else
+								{
+									if(data_type == != NULL)
+									{
+										inf_char_str(data_type, searched_token->content[strlen(searched_token->content)-1]);
+									}
+									TL_nt(stack, NULL, searched_token, local_symbtab);
+								}
+							}
+						}
+					}
+				}
+				//TODO ERROR FUNCTION DEFINITION NOT FOUND
+			}
+			else //when in local scope, but we do find the definition in global symbtab
+			{
+				if(data_type != NULL)
+				{
+					inf_char_str(data_type, searched_node->data_type[strlen(searched_node->data_type)-1])
+				}
+				printf("%s ", token->content);
+				TL_nt(stack, searched_node, NULL, local_symbtab);
+			}
+		}
+	}
+	else
+	{
+		//TODO ERROR EXPECTED FUNCTION ID
+	}
+}
 
-/* } */
-
-
-/* int TL_nt(stack_t *stack, bst_node_t **global_symbtab) */
-/* { */
-
-/* } */
+//only one symbtab because I am calling it from different places and it doesnt have to look "out of scope"
+//TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
+int TL_nt(stack_t *stack, bst_node_t *node, char *types, bst_node_t **symbtab)
+{
+	/*I definitly have to check a do of things: 
+		- first I need to get all the params, ie parse them
+		- every param that I parse I need to check:
+			a) if it exists in this scope (if its a var)
+			b) if it matches the param data type found either in node or token
+	*/
+}
 
