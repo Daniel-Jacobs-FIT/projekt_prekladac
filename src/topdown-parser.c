@@ -84,35 +84,6 @@ int is_builtin_type(char *str)
 	return 0;
 }
 
-//0 successes, else fail
-int push_all_tokens_to_stack(stack_t *stack)
-{
-	token_t *token = NULL;
-	while((token = get_token())->variant != end_prg_var)
-	{
-		if(token->variant == err_var)
-		{
-			psa_stack_dispose(stack);
-			return 2;
-		}
-		if(psa_stack_push(stack, token) == -1)
-		{
-			//realloc error
-			psa_stack_dispose(stack);
-			return 1;
-		}
-	}
-	//add the end_prg_var into the stack
-	if(psa_stack_push(stack, token) == -1)
-	{
-		//realloc error
-		psa_stack_dispose(stack);
-		return 1;
-	}
-
-	return 0;
-}
-
 //return type int (0 means successes, anything else is an error code)
 //do you create a stuff before or in PRG, logic seems to say in PRG, cause why would you want to deal with it in main
 //no tokens needed either since it can get the all by itself
@@ -408,31 +379,86 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
 
 int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
 {
-	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-	printf("%s ", token->content);
-	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-	if(token->variant == eq_var)
-	{
-		printf(" = ");
-		token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
-		if(token->variant == identif_function_var)
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);    //vzdy identifikator promenne
+    bst_node_t *var_in_symbtab;
+    char *new_var_name;
+    char *new_data_type;
+    /* Nejdriv se zjisti, jestli je promenna definovana, pokud ne, vyprinti se DEFVAR
+     *      a ulozi se do tabulky symbolu
+     * Pote se zjisti, zda-li je za identifikatorem '=' pokud ne, je to chyba
+     * Pokud je tam, muze se jednat o volani funkce nebo prirazeni vyrazu -> rozhodnout se
+     * */
+
+    #define ASG_DEFVAR(WHICH_FRAME)\
+        new_var_name = (char *)calloc(strlen(token->content) + 1, sizeof(char));\
+        new_data_type = (char *)calloc(1, sizeof(char));\
+        if(new_var_name == NULL || new_data_type == NULL) {\
+            free(new_var_name);\
+            free(new_data_type);\
+            EXIT_CODE = 99;\
+            fprintf(stderr, "Chyba alokace paměti\n");\
+            return 1;\
+        }\
+        strcpy(new_var_name, token->content);\
+		new_data_type[0] = '\0';\
+        fprintf(stdout, "DEFVAR WHICH_FRAME@%s\n", token->content);
+
+    //Kontrola, jestli je promenna jiz definovana, pokud ne, definuje se a vlozi do tabulky symbolu
+    if(local_symbtab == NULL) {  //nejsme ve funkci, pristupujeme ke globalni tabulce
+        var_in_symbtab = bst_search(*global_symbtab, token->content);
+        if(var_in_symbtab == NULL) {   //promenna jeste neni definovana
+            ASG_DEFVAR(GF)
+            bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
+            var_in_symbtab = bst_search(*global_symbtab, token->content);
+        }
+    } else {    //jsme ve funkci, pristupujeme k lokalni tabulce symbolu
+        var_in_symbtab = bst_search(*local_symbtab, token->content);
+        if(var_in_symbtab == NULL) {  //promenna jeste neni definovana
+            ASG_DEFVAR(LF)
+            bst_insert(global_symbtab, new_var_name, id_var, new_data_type);
+            var_in_symbtab = bst_search(*global_symbtab, token->content);
+        }
+    }
+    //var_in_symbtab nyni ukazuje na novou/starou promennou v tabulce symbolu
+
+	token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
+
+    if(token->variant != eq_var) {  //neni prirazeni - chyba
+        EXIT_CODE = 2;
+        free(new_var_name);
+        free(new_data_type);
+        fprintf(stderr, "Syntaktická chyba na řádku: %d\nOčekáváno '='\n", token->line_num);
+        return 1;
+    } else {
+		if(token->variant == identif_function_var)  //je to volani funkce
 		{
-			char *data_type = (char *)malloc(1);
-			data_type[0] = '\0';
-			FCALL_nt(stack, global_symbtab, local_symbtab, data_type);
-			//bst_insert(symbtab, token->content, var_id, /*return type of the fcall [but how to get it?]*/)
-		}
-		else
-		{
-			//ASG -> id = EXPR
-			//TODO RUN BOTUP PARSER
-		}
-		//assignment can be either local or global, but I dont have to deal with that sice, I only have a single symtab
-	}else
-	{
-		//TODO ERROR EXPECTED '=' CHAR
-	}
-	return 0;
+			FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type);
+
+            //priradit do var_insymtab_data_type novy datatyp
+            //generovat move instrukci
+		} else {    //je to prirazeni vyrazu -> ENGAGE BOTTOM UP CHROUSTAC
+            #define ASG_EXPR_PARSE\
+                bst_node_t *expr_result;\
+                expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, ass_table);\
+                if(EXIT_CODE != 0) {\
+                    free(new_var_name);\
+                    free(new_data_type);\
+                    return 1;\
+                }\
+                fprintf(stdout, "MOVE %s@%s %s@%s", frame_name, new_var_name,\
+                                                    frame_name, expr_result->key);\
+                var_in_symbtab->data_type[0] = expr_result->data_type[0];
+
+            if(local_symbtab == NULL) { //pracuju s globalni tabulkou
+                char *frame_name = "GF";
+                ASG_EXPR_PARSE
+                
+            } else {    //pracuju s lokalni tabulkou
+                char *frame_name = "LF";
+                ASG_EXPR_PARSE
+            }
+        }
+    }
 }
 
 int SS_nt(stack_t *stack, bst_node_t **symbtab)

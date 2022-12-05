@@ -8,10 +8,26 @@ HOTOVO: Udelat testy na zasobnik
 
 HOTOVO Zavest utils.h - nastavovani error kodu a radne ukoncovani programu - uklid...
 
-Napsat testy i pro conditions - nutne upravit botup-parser-tests.c
+HOTOVO Napsat testy i pro conditions - nutne upravit botup-parser-tests.c
 
-Naprogramovat pravidla s porovnavacimi operatory
+HOTOVO Naprogramovat pravidla s porovnavacimi operatory
 
-Napsat hloubkove testy pro bottom-up parser
+HOTOVO Napsat hloubkove testy pro bottom-up parser
 
-Udelat top-down parser
+
+TOP-DOWN PARSER:
+
+HOTOVE:
+    PRG
+    SSD (bez STAT)
+    SS (taky bez STAT)
+    STAT jen ASG a FCALL
+    ASG {FCALL}
+    FDEF
+
+NUTNE UDELAT:
+    STAT (IF CYCL RET)
+    ASG EXPR
+    STAT -> EXPR
+
+Udelat top-down parser xd

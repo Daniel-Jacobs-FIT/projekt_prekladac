@@ -186,7 +186,7 @@ void string_parse(token_t *token)
 			snprintf(helper_str, digit_count+2, "\\%s%d", extra_zero,(int)token->content[i]);
 			for(int j = 0; helper_str[j] != '\0'; j++)
 			{
-				inf_char_str_lit(&new_str, helper_str[j]
+				inf_char_str_lit(&new_str, helper_str[j]);
 				if(EXIT_CODE != 0)
 				{
 					return;
@@ -644,7 +644,8 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
 /* Funkce implementujici syntaktickou analyzu zdola nahoru
  * Vraci ukazatel do tabulky symbolu na promennou, do niz
  * byl ulozen vysledek celeho vyrazu*/
-bst_node_t *bottom_up_parser(token_t *from_top_down,       //token, kterym ma zacit analyza, vzdy
+bst_node_t *bottom_up_parser(stack_t *global_token_stack,
+                        int *global_stack_index,
                         bst_node_t **symb_table,    //tabulka symbolu, ze ktere se ma cerpat
                         bool in_function,           //urcuje, zda-li se ma definovat promenne v lokalnim nebo globalnim frameu - LF/GF
                         bool parsing_assignment,    //urcuje, zda se parsuje prirazeni nebo podminka
@@ -677,7 +678,7 @@ bst_node_t *bottom_up_parser(token_t *from_top_down,       //token, kterym ma za
         ending_token = open_curl_var;       //analyza konci, kdyz stack_top(term) = { && vstup = {
     }
 
-    current_input = from_top_down;  //prvni token je vzdy predan shora
+    current_input = next_stack_token(global_token_stack, global_stack_index);
 
     do {
         top_term_of_stack = psa_stack_top_term(stack);
@@ -688,7 +689,7 @@ bst_node_t *bottom_up_parser(token_t *from_top_down,       //token, kterym ma za
             case eq:
                 psa_stack_push(stack, current_input);
                 BUP_ERR_HANDLE;
-                current_input = get_token();
+                current_input = next_stack_token(global_token_stack, global_stack_index);
                 BUP_ERR_HANDLE;
                 break;
             case ls:
@@ -696,7 +697,7 @@ bst_node_t *bottom_up_parser(token_t *from_top_down,       //token, kterym ma za
                 BUP_ERR_HANDLE;
                 psa_stack_push(stack, current_input);
                 BUP_ERR_HANDLE;
-                current_input = get_token();
+                current_input = next_stack_token(global_token_stack, global_stack_index);
                 BUP_ERR_HANDLE;
                 break;
             case gr:

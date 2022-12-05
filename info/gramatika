@@ -38,6 +38,7 @@ STAT -> IF
 STAT -> CYC
 STAT -> FCALL ;
 STAT -> RET
+STAT -> EXPR
 
 RET -> return ;
 RET -> return EXPR
