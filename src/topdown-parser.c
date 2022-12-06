@@ -28,6 +28,10 @@ int SS_nt(stack_t *, bst_node_t **);
 int FDEF_nt(stack_t *, bst_node_t **);
 int SSD_nt(stack_t *, bst_node_t **);
 
+#define ERROR_OUT(MSG)\
+	printf("%s\n", MSG);\
+	return 1;
+
 
 int inf_char_str(char *str, int input)
 {
@@ -415,7 +419,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         var_in_symbtab = bst_search(*local_symbtab, token->content);
         if(var_in_symbtab == NULL) {  //promenna jeste neni definovana
             ASG_DEFVAR(LF)
-            bst_insert(global_symbtab, new_var_name, id_var, new_data_type);
+            bst_insert(global_symbtab, new_var_name, var_id, new_data_type); //changed id_var to var_id
             var_in_symbtab = bst_search(*global_symbtab, token->content);
         }
     }
@@ -432,7 +436,14 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
     } else {
 		if(token->variant == identif_function_var)  //je to volani funkce
 		{
-			FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type);
+			if(FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type) != 0)
+			{
+				if(new_data_type[strlen(new_data_type)-1] == 'n')
+				{
+					ERROR_OUT("ERROR ASIGNING FROM A VOID FUNCTION");
+				}
+				return 1;
+			}
 
             //priradit do var_insymtab_data_type novy datatyp
             //generovat move instrukci
@@ -459,6 +470,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
             }
         }
     }
+	return 0;
 }
 
 int SS_nt(stack_t *stack, bst_node_t **symbtab)
@@ -504,6 +516,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 	if(types == NULL)
 	{
 		//TODO MALLOC FAILED
+		ERROR_OUT("MALLOC FAILED");
 	}
 	types[0] = '\0';
 	printf("%s ", token->content);
@@ -513,17 +526,32 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 		if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
 		{
 			//TODO ERROR FUNCTION IS NOT DEFINED
+			ERROR_OUT("ERROR FUNCTION IS NOT DEFINED");
 		}
 		else
 		{
 			if(return_type != NULL)
 			{
-				inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
+				if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
+				{
+					inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-2]);
+				}
+				else
+				{
+					inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
+				}
 			}
 			printf("%s ", token->content);
 			//TODO check if return is ok
 			//the next stack token is the thing after f_id ie. '(' char
-			TL_nt(stack, searched_node->data_type, global_symbtab);
+			if(TL_nt(stack, searched_node->data_type, global_symbtab) == 0)
+			{
+				return 0;
+			}
+			else
+			{
+				return 1;
+			}
 		}
 	}
 	else //in local scope
@@ -543,8 +571,13 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 						searched_token = psa_stack_get_nth_rev(stack, j);
 						if(searched_token->variant == identif_keyword_var)
 						{
-							inf_char_str(types, searched_token->content[0]);
-							//TODO check inf char errors
+							if(searched_token->content[0] == '?')
+							{
+								inf_char_str(types, searched_token->content[1]);
+							}else
+							{
+								inf_char_str(types, searched_token->content[0]);
+							}
 						}
 						else if(searched_token->variant == cls_rnd_var)
 						{
@@ -552,11 +585,18 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 							searched_token = psa_stack_get_nth_rev(stack, j+2);
 							if(searched_token->variant == identif_keyword_var)
 							{
-								inf_char_str(types, searched_token->content[0]);
+								if(searched_token->content[0] == '?')
+								{
+									inf_char_str(types, searched_token->content[1]);
+								}else
+								{
+									inf_char_str(types, searched_token->content[0]);
+								}
 							}
 							else
 							{
 								//TODO ERROR EXPECTED KEYWORD AS A RETURN
+								ERROR_OUT("ERROR EXPECTED KEYWORD AS A RETURN");
 							}
 							//end the search
 							goto end_loop;
@@ -568,14 +608,27 @@ end_loop:
 			if(!found)
 			{
 				//TODO ERROR FID IS NOT FOUND
+				ERROR_OUT("ERROR FID IS NOT FOUND");
 			}
 			else
 			{
 				if(return_type != NULL)
 				{
-					inf_char_str(return_type, types[strlen(types)-1]);
+					if(types[strlen(types)-1] == '?')
+					{
+						inf_char_str(return_type, types[strlen(types)-2]);
+					}else
+					{
+						inf_char_str(return_type, types[strlen(types)-1]);
+					}
 				}
-				TL_nt(stack, types, local_symbtab);
+				if(TL_nt(stack, types, local_symbtab) == 0)
+				{
+					return 0;
+				}else
+				{
+					return 1;
+				}
 			}
 		}
 		else //when in local scope, but we do find the definition in global symbtab
@@ -585,7 +638,13 @@ end_loop:
 				inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
 			}
 			printf("%s ", token->content);
-			TL_nt(stack, searched_node->data_type, local_symbtab);
+			if(TL_nt(stack, searched_node->data_type, local_symbtab) == 0)
+			{
+				return 0;
+			}else
+			{
+				return 1;
+			}
 		}
 	}
 	return 0;
@@ -595,39 +654,72 @@ end_loop:
 //TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
 int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
-	/*
-	rn the next_stack function should return a open_rnd_var (but I should check for that)
-	I definitly have to check a do of things: 
-		- first I need to get all the params, ie parse them
-		- every param that I parse I need to check:
-			a) if it exists in this scope (if its a var)
-			b) if it matches the param data type found in "types"
-		- at the end I need to check if the amount of parameters matches the amount found in "types"
-	*/
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX), *searched_token = NULL;
+	int check_types_index = 0;
+
 	if(token->variant == open_rnd_var)
 	{
 		while((token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX))->variant != cls_rnd_var)
 		{
+			if(check_types_index > (int)strlen(types)-1)
+			{
+				//TODO ERROR TOO MANY ARGUMENTS
+				ERROR_OUT("ERROR TOO MANY ARGUMENTS");
+			}
 			switch(token->variant)
 			{
 				case identif_variable_var:
+					if(bst_search((*symbtab), token->content) == NULL)
+					{
+						//TODO ERROR VARIABLE NOT DECLARED BEFORE USE
+						ERROR_OUT("ERROR VARIABLE NOT DECLARED BEFORE USE");
+					}
+					printf("%s ", token->content);
 					break;
 				case integ_var:
+					if(types[check_types_index++] != 'i')
+					{
+						//TODO ERROR EXPECTED INT
+						ERROR_OUT("ERROR EXPECTED INT");
+					}
+					printf("%s ", token->content);
 					break;
 				case float_var:
+					if(types[check_types_index++] != 'f')
+					{
+						//TODO ERROR EXPECTED FLOAT
+						ERROR_OUT("ERROR EXPECTED FLOAT");
+					}
+					printf("%s ", token->content);
 					break;
 				case string_lit_end_var:
+					if(types[check_types_index++] != 's')
+					{
+						//TODO ERROR EXPECTED STRING
+						ERROR_OUT("ERROR EXPECTED STRING");
+					}
+					printf("%s ", token->content);
+					break;
+				case comma_var:
 					break;
 				default:
-					break;
+					//TODO ERROR UNEXPECTED CHAR IN FUNCTION CALL
+					ERROR_OUT("ERROR UNEXPECTED CHAR IN FUNCTION CALL");
 			}
+		}
+		if(check_types_index != (int)strlen(types)-1)
+		{
+			//TODO ERROR TO FEW ARGUMENTS
+			ERROR_OUT("ERROR TO FEW ARGUMENTS");
 		}
 	}
 	else
 	{
 		//TODO ERROR EXPECTED '(' CHAR
+		ERROR_OUT("ERROR EXPECTED '(' CHAR");
 	}
+	printf(") ");
+	printf(";");
 	return 0;
 }
 
