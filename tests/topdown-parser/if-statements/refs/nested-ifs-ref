@@ -1,0 +1,29 @@
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@5
+JMPIFEQ _else_label886 GF@_expression383 int@0
+DEFVAR GF@_expression915
+MOVE GF@_expression915 int@10
+JMPIFEQ _else_label793 GF@_expression915 int@0
+DEFVAR GF@$a
+DEFVAR GF@_expression386
+MOVE GF@_expression386 int@6
+MOVE GF@$a GF@_expression386
+JMP _if_label335
+LABEL _else_label793
+DEFVAR GF@$b
+DEFVAR GF@_expression492
+MOVE GF@_expression492 int@14
+MOVE GF@$b GF@_expression492
+LABEL _if_label335
+DEFVAR GF@$else_vnoreneho_ifu
+DEFVAR GF@_expression649
+MOVE GF@_expression649 string@jojo
+MOVE GF@$else_vnoreneho_ifu GF@_expression649
+JMP _if_label777
+LABEL _else_label886
+DEFVAR GF@$else_prvniho_ifu
+DEFVAR GF@_expression421
+MOVE GF@_expression421 int@1
+MOVE GF@$else_prvniho_ifu GF@_expression421
+LABEL _if_label777
+EXIT_CODE = 0

@@ -235,7 +235,7 @@ void replace_and_push_exp(int to_pop, stack_t *stack, char *expr_content, int li
 
 void parse_soft_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
                                 token_t *operator_token, char frame_name[3],
-                                bst_node_t **symb_table, stack_t *stack) {
+                                bst_node_t **symb_table, stack_t *stack, bool in_loop) {
     char first_data_type = first_operand->data_type[0];
     char second_data_type = second_operand->data_type[0];
     char opcode[3] = "";
@@ -275,11 +275,11 @@ void parse_soft_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
         FREE_EXPR_DATA_TYPES_SOFT_COMP
     }
     //vygenerovani jmen pro nove promenne
-    char *final_expr_name = get_rand_var_name(symb_table);
+    char *final_expr_name = get_rand_name(symb_table, "_expression");
     bst_insert(symb_table, final_expr_name, var_id, final_expr_data_type);
-    char *ineq_expr_name = get_rand_var_name(symb_table);
+    char *ineq_expr_name = get_rand_name(symb_table, "_expression");
     bst_insert(symb_table, ineq_expr_name, var_id, ineq_expr_data_type);
-    char *eq_expr_name = get_rand_var_name(symb_table);
+    char *eq_expr_name = get_rand_name(symb_table, "_expression");
     bst_insert(symb_table, eq_expr_name, var_id, eq_expr_data_type);
     if(EXIT_CODE != 0) {
         FREE_EXPR_NAMES_SOFT_COMP
@@ -291,9 +291,9 @@ void parse_soft_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
     eq_expr_data_type[0] = 'b'; 
 
     //generace kodu pro definovani promennych
-    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, final_expr_name);
-    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, ineq_expr_name);
-    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, eq_expr_name);
+    BOTUP_DEFVAR_COND(final_expr_name)
+    BOTUP_DEFVAR_COND(ineq_expr_name)
+    BOTUP_DEFVAR_COND(eq_expr_name)
 
     #define CONV_NULL_SOFT_COMP(WHICH_OP_KEY)\
             case 'i':\
@@ -363,7 +363,7 @@ void parse_soft_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
 
 void parse_strict_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
                                 token_t *operator_token, char frame_name[3],
-                                bst_node_t **symb_table, stack_t *stack) {
+                                bst_node_t **symb_table, stack_t *stack, bool in_loop) {
     char opcode[2 + 1] = "";    //EQ nebo LS
     char first_data_type = first_operand->data_type[0];
     char second_data_type = second_operand->data_type[0];
@@ -375,7 +375,7 @@ void parse_strict_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
     }
 
     //vygenerovani jmena nove promenne, prirazeni datoveho typu
-    char *new_expr_name = get_rand_var_name(symb_table);
+    char *new_expr_name = get_rand_name(symb_table, "_expression");
     char *new_data_type = (char *)calloc(1 + 1, sizeof(char));
     if(EXIT_CODE != 0 || new_data_type == NULL) {
         free (new_expr_name);
@@ -392,11 +392,11 @@ void parse_strict_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
         free(new_data_type);
         return;
     } else if(first_data_type == 'n' || second_data_type == 'n') {  //melo by se priradit false
-        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
+        BOTUP_DEFVAR_COND(new_expr_name)
         fprintf(stdout, "MOVE %s@%s bool@false\n", frame_name, new_expr_name);
 
     #define DEFVAR_AND_EXEC_STRICT_COMP\
-        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);\
+        BOTUP_DEFVAR_COND(new_expr_name)\
         fprintf(stdout, "%s %s@%s %s@%s %s@%s\n", opcode, frame_name, new_expr_name,\
                                                     frame_name, first_operand->key,\
                                                     frame_name, second_operand->key);
@@ -433,13 +433,13 @@ void parse_strict_ineq(bst_node_t *first_operand, bst_node_t *second_operand,
 /* Funkce pro zpracovani operatoru === a !=== */
 void parse_identity(bst_node_t *first_operand, bst_node_t *second_operand,
                                 token_t *operator_token, char frame_name[3],
-                                bst_node_t **symb_table, stack_t *stack) {
+                                bst_node_t **symb_table, stack_t *stack, bool in_loop) {
     //ulozeni, protoze hybeme se stackem pred pouzitim operator_token => bude z nej neco jineho nez cekame
     token_var operator = operator_token->variant;
     int line_num = operator_token->line_num;
 
     //nagenerovani noveho jmena  pro vysledek operace
-    char *new_expr_name = get_rand_var_name(symb_table);
+    char *new_expr_name = get_rand_name(symb_table, "_expression");
     char *new_data_type = (char *)calloc(1 + 1, sizeof(char));
 
     if(EXIT_CODE != 0 || new_data_type == NULL) {
@@ -461,7 +461,7 @@ void parse_identity(bst_node_t *first_operand, bst_node_t *second_operand,
         return;
     }
 
-    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
+    BOTUP_DEFVAR_COND(new_expr_name)
 
     if(first_operand->data_type[0] != second_operand->data_type[0]) {
         if(operator == eq_var) {
@@ -481,7 +481,7 @@ void parse_identity(bst_node_t *first_operand, bst_node_t *second_operand,
 /* funkce pro zpracovani pravidel E -> E op E pro {+ - * / .} */
 void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
                                 token_t *operator_token, char frame_name[3],
-                                bst_node_t **symb_table, stack_t *stack) {
+                                bst_node_t **symb_table, stack_t *stack, bool in_loop) {
     char first_data_type = first_operand->data_type[0];
     char second_data_type = second_operand->data_type[0];
     char result_data_type = '?';
@@ -609,7 +609,7 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     }
 
     //vygenerovani noveho klice pro promennou s vysledkem operace
-    char *new_expr_name = get_rand_var_name(symb_table);
+    char *new_expr_name = get_rand_name(symb_table, "_expression");
     new_data_type = (char *)calloc(1 + 1, sizeof(char));
     MEM_ERR_WR(new_expr_name)
     new_data_type[0] = result_data_type;
@@ -623,7 +623,7 @@ void parse_numer_and_conc(bst_node_t *first_operand, bst_node_t *second_operand,
     MEM_ERR
 
     //generovani kodu
-    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_expr_name);
+    BOTUP_DEFVAR_COND(new_expr_name)
     fprintf(stdout, "%s %s@%s %s@%s %s@%s\n", 
             opcode,
             frame_name, new_expr_name,
@@ -649,6 +649,7 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
                         bst_node_t **symb_table,    //tabulka symbolu, ze ktere se ma cerpat
                         bool in_function,           //urcuje, zda-li se ma definovat promenne v lokalnim nebo globalnim frameu - LF/GF
                         bool parsing_assignment,    //urcuje, zda se parsuje prirazeni nebo podminka
+                        bool in_loop,
                         const prec_table_t precedence_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS]) {
     stack_t *stack = psa_stack_init();
     token_t *current_input; 
@@ -715,7 +716,7 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
                     char *new_key;
                         
                     /* urceni klice a jmena pro novou pomocnou a jeji vlozeni na zasobnik*/
-                    new_key = get_rand_var_name(symb_table);
+                    new_key = get_rand_name(symb_table, "_expression");
                     new_data_type = (char *)calloc(1 + 1, sizeof(char));
                     BUP_ERR_HANDLE;
 
@@ -761,7 +762,24 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
 
                     /* generovani kodu, podivne poradi (generujeme pred popem), kvuli
                      * nutnosti vytisknout term pred jeho popnutim, u expr neni nutne*/
-                    fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key); 
+                    if(in_loop == false) {
+                        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key);
+                    } else {
+                        char *no_redef_label = get_rand_name(symb_table, "_defvar_skip");
+                        if(EXIT_CODE != 0) {
+                            return NULL;
+                        }
+                        bst_insert(symb_table, no_redef_label, label_id, NULL);
+                        if(EXIT_CODE != 0) {
+                            return NULL;
+                        }
+                        fprintf(stdout, "TYPE %s@%s %s@%s\n", frame_name, NO_REDEF_TYPE_VAR,
+                                                              frame_name, new_key);
+                        fprintf(stdout, "JMPIFNEQ %s %s@%s string@\n", no_redef_label,
+                            frame_name, NO_REDEF_TYPE_VAR);
+                        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key);
+                        fprintf(stdout, "LABEL %s\n", no_redef_label);
+                    }
                     fprintf(stdout, "MOVE %s@%s ", frame_name, new_key); 
                     parse_switch(top_of_stack, frame_name);
 
@@ -813,28 +831,28 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
                         case oper_conc_var:
                             parse_numer_and_conc(first_operand, second_operand,
                                 second_from_top, frame_name,
-                                symb_table, stack);
+                                symb_table, stack, in_loop);
                             BUP_ERR_HANDLE
                             break;
                         case eq_var:
                         case not_eq_var:
                             parse_identity(first_operand, second_operand,
                                 second_from_top, frame_name,
-                                symb_table, stack);
+                                symb_table, stack, in_loop);
                             BUP_ERR_HANDLE
                             break;
                         case grt_var:
                         case less_var:
                             parse_strict_ineq(first_operand, second_operand,
                                 second_from_top, frame_name,
-                                symb_table, stack);
+                                symb_table, stack, in_loop);
                             BUP_ERR_HANDLE
                             break;
                         case grt_eq_var:
                         case less_eq_var:
                             parse_soft_ineq(first_operand, second_operand,
                                 second_from_top, frame_name,
-                                symb_table, stack);
+                                symb_table, stack, in_loop);
                             BUP_ERR_HANDLE
                             break;
                         default:
@@ -874,8 +892,7 @@ Nahodne, abychom snizili sanci degenerace stromu, jimz je
 reprezentovana tabulka symbolu.
 Vraci dynamicky alokovany string "_expressionDDD", kde D je cislo 0-9
 */
-char *get_rand_var_name(bst_node_t **symb_table) {
-    char beginning[] = "_expression";
+char *get_rand_name(bst_node_t **symb_table, char *beginning) {
     char *rand_name;
     do {
         int suffix = abs(rand() % 1000);

@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include "utils.h"
 
-typedef enum {var_id, func_id} symtab_node_t;
+typedef enum {var_id, func_id, label_id} symtab_node_t;
 
 //uzel stromu
 typedef struct bst_node {

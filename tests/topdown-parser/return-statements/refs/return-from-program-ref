@@ -1,0 +1,21 @@
+DEFVAR GF@$a
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@5
+MOVE GF@$a GF@_expression383
+DEFVAR GF@_expression886
+MOVE GF@_expression886 GF@$a
+DEFVAR GF@_expression777
+MOVE GF@_expression777 int@5
+DEFVAR GF@_expression915
+EQ GF@_expression915 GF@_expression886 GF@_expression777
+JMPIFEQ _else_label793 GF@_expression915 bool@false
+DEFVAR GF@_expression386
+MOVE GF@_expression386 string@yea!
+EXIT int@0
+JMP _if_label335
+LABEL _else_label793
+DEFVAR GF@_expression492
+MOVE GF@_expression492 string@no\032:(\010
+EXIT int@0
+LABEL _if_label335
+EXIT_CODE = 0

@@ -1,0 +1,34 @@
+DEFVAR GF@$a
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@4
+MOVE GF@$a GF@_expression383
+DEFVAR GF@_no_redef_type_var
+LABEL _loop_start886
+TYPE GF@_no_redef_type_var GF@_expression915
+JMPIFNEQ _defvar_skip793 GF@_no_redef_type_var string@
+DEFVAR GF@_expression915
+LABEL _defvar_skip793
+MOVE GF@_expression915 GF@$a
+TYPE GF@_no_redef_type_var GF@_expression335
+JMPIFNEQ _defvar_skip386 GF@_no_redef_type_var string@
+DEFVAR GF@_expression335
+LABEL _defvar_skip386
+MOVE GF@_expression335 int@5
+TYPE GF@_no_redef_type_var GF@_expression492
+JMPIFNEQ _defvar_skip649 GF@_no_redef_type_var string@
+DEFVAR GF@_expression492
+LABEL _defvar_skip649
+LT GF@_expression492 GF@_expression915 GF@_expression335
+JMPIFEQ _loop_end777 GF@_expression492 bool@false
+TYPE GF@_no_redef_type_var GF@$b
+JMPIFNEQ _defvar_skip421 GF@_no_redef_type_var string@
+DEFVAR GF@$b
+LABEL _defvar_skip421
+TYPE GF@_no_redef_type_var GF@_expression362
+JMPIFNEQ _defvar_skip27 GF@_no_redef_type_var string@
+DEFVAR GF@_expression362
+LABEL _defvar_skip27
+MOVE GF@_expression362 int@1
+MOVE GF@$b GF@_expression362
+LABEL _loop_end777
+EXIT_CODE = 0
