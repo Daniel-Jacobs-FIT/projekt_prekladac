@@ -6,6 +6,7 @@ const char *builtin_functions[] = {"reads", "readi", "readf", "write", "strlen",
 int BUILTIN_TYPES_COUNT = 6;
 const char *builtin_types[] =  {"float", "?float", "int", "?int", "string", "?string"};
 int IN_WHILE_LOOPS = 0;
+bst_node_t *CURRENT_FUNCTION = NULL;
 
 /*
 --- What do I need to do
@@ -29,6 +30,7 @@ int SS_nt(stack_t *, bst_node_t **, bst_node_t **);
 int FDEF_nt(stack_t *, bst_node_t **);
 int SSD_nt(stack_t *, bst_node_t **);
 int IF_nt(stack_t *, bst_node_t **, bst_node_t **);
+int RET_nt(stack_t *, bst_node_t **, bst_node_t **);
 int CYC_nt(stack_t *, bst_node_t **, bst_node_t **);
 
 #define ERROR_OUT(MSG)\
@@ -409,9 +411,8 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
             CYC_nt(stack, global_symbtab, local_symbtab);
             STAT_ERR_RET
         } else if(strcmp(first_token->content, "return") == 0) {//zpracuje RETURN
-            fprintf(stderr, "Return statement not implemented yet!\n");
-            EXIT_CODE = 69;
-            return 1;
+            RET_nt(stack, global_symbtab, local_symbtab);
+            STAT_ERR_RET
         } else {
             fprintf(stderr, "Syntaktická chyba na řádku:%d\nNeočekávaný lexém %s\n", first_token->line_num, first_token->content);
             EXIT_CODE = 2;
@@ -584,10 +585,51 @@ int SS_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbta
     }
 }
 
-/* int RET_nt(stack_t *stack, bst_node_t **global_symbtab) */
-/* { */
-	
-/* } */
+int RET_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab) {
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);    //pozere return 
+    char return_data_type;
+    bst_node_t **symbtable;
+    bool in_function;
+    bst_node_t *expr_result;
+    char frame_name[3];
+
+    if(local_symbtab == NULL) {
+        symbtable = global_symbtab;
+        in_function = false;
+        strcpy(frame_name, "GF");
+    } else {
+        symbtable = local_symbtab;
+        in_function = true;
+        strcpy(frame_name, "LF");
+    }
+
+    //zjistime datovy typ
+    if(token->variant == semicol_var) { //prazdny vyraz
+        return_data_type = 'v';
+    } else {    //je tu vyraz, musime ho zpracovat
+        expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, symbtable,
+            in_function, true, IN_WHILE_LOOPS, ass_table);
+        if(EXIT_CODE != 0) {
+            return 1;
+        }
+        return_data_type = expr_result->data_type[0];
+    }
+
+    if(CURRENT_FUNCTION == NULL) {  //nejsme ve funkci -> exit z programu
+        fprintf(stdout, "EXIT int@0\n");
+    } else {    //jsme ve funkci, musime provest navrat z funkce a spravne predani hodnoty
+        char expected_data_type = CURRENT_FUNCTION->data_type[strlen(CURRENT_FUNCTION->data_type) - 1];
+        if(expected_data_type != return_data_type) {    //funkce vraci jiny typ, nez je definovan
+            token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
+            EXIT_CODE = 4;
+            fprintf(stderr, "Chybný návratový typ na řádku %d ve funkci %s\n", token->line_num, CURRENT_FUNCTION->key);
+            return 1;
+        } else {    //navratovy typ je korektni
+            fprintf(stdout, "PUSHS %s@%s\n", frame_name, expr_result->key);
+        }
+    }
+    return 0;
+}
 
 /* int ASG_nt(stack_t *stack, bst_node_t **global_symbtab) */
 /* { */
