@@ -5,6 +5,7 @@ int BUILTIN_FUNCTIONS_COUNT = 8;
 const char *builtin_functions[] = {"reads", "readi", "readf", "write", "strlen", "substring", "ord", "chr"};
 int BUILTIN_TYPES_COUNT = 6;
 const char *builtin_types[] =  {"float", "?float", "int", "?int", "string", "?string"};
+int IN_WHILE_LOOPS = 0;
 
 /*
 --- What do I need to do
@@ -24,10 +25,11 @@ int TL_nt(stack_t *, char *, bst_node_t **);
 int ASG_nt(stack_t *, bst_node_t **, bst_node_t **);
 int STAT_nt(stack_t *, bst_node_t **, bst_node_t **);
 int PL_nt(stack_t *, char *, bst_node_t **);
-int SS_nt(stack_t *, bst_node_t **);
+int SS_nt(stack_t *, bst_node_t **, bst_node_t **);
 int FDEF_nt(stack_t *, bst_node_t **);
 int SSD_nt(stack_t *, bst_node_t **);
-
+int IF_nt(stack_t *, bst_node_t **, bst_node_t **);
+int CYC_nt(stack_t *, bst_node_t **, bst_node_t **);
 
 int inf_char_str(char *str, int input)
 {
@@ -43,8 +45,7 @@ int inf_char_str(char *str, int input)
 		content[1] = '\0';
 		str = content;
 	}
-	else
-	{
+	else {
 		int str_size = strlen(str);
 		char *content = (char *)realloc((void *)str, str_size+2);
 		if(content == NULL)
@@ -127,7 +128,6 @@ int SSD_nt(stack_t *stack, bst_node_t **global_symbtab)
 	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 	if(token->variant == end_prg_var)
 	{
-		//return successes
 		return 0;
 	}
 	else if(token->variant == identif_keyword_var)
@@ -258,7 +258,7 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 							if(token->variant == open_curl_var)
 							{
 								printf("{ \n");
-								if(SS_nt(stack, local_symbtab) != 0)
+								if(SS_nt(stack, global_symbtab, local_symbtab) != 0)
 								{
 									return 1;
 								}
@@ -391,14 +391,19 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
             EXIT_CODE = 69;
             return 1;
     } else if(first_token->variant == identif_keyword_var) {
+        //makro pro ukonceni funkce z vetvi
+        #define STAT_ERR_RET\
+            if(EXIT_CODE != 0) {\
+                return 1;\
+            } else {\
+                return 0;\
+            }
         if(strcmp(first_token->content, "if") == 0) {           //zpracuje IF 
-            fprintf(stderr, "If statement not implemented yet!\n");
-            EXIT_CODE = 69;
-            return 1;
+            IF_nt(stack, global_symbtab, local_symbtab);
+            STAT_ERR_RET
         } else if(strcmp(first_token->content, "while") == 0) { //zpracuje WHILE
-            fprintf(stderr, "While statement not implemented yet!\n");
-            EXIT_CODE = 69;
-            return 1;
+            CYC_nt(stack, global_symbtab, local_symbtab);
+            STAT_ERR_RET
         } else if(strcmp(first_token->content, "return") == 0) {//zpracuje RETURN
             fprintf(stderr, "Return statement not implemented yet!\n");
             EXIT_CODE = 69;
@@ -409,16 +414,17 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
             return 1;
         }
     } else {    //zpracovavam expression
+        bool is_in_while_loop = IN_WHILE_LOOPS;
         if(local_symbtab == NULL) { //predej globalni tabulku symbolu, nejsi ve funkci
-            bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, ass_table);
+            bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, is_in_while_loop, ass_table);
         } else {    //predej lokalni tabulku symbolu, jsi ve funkci
-            bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, ass_table);
+            bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, is_in_while_loop, ass_table);
         }
         if(EXIT_CODE != 0) {
             return 1;
         }
     }
-	return 0;
+    return 0;
 }
 
 int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
@@ -427,11 +433,21 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
     bst_node_t *var_in_symbtab;
     char *new_var_name;
     char *new_data_type;
+    char frame_name[3];
     /* Nejdriv se zjisti, jestli je promenna definovana, pokud ne, vyprinti se DEFVAR
      *      a ulozi se do tabulky symbolu
      * Pote se zjisti, zda-li je za identifikatorem '=' pokud ne, je to chyba
      * Pokud je tam, muze se jednat o volani funkce nebo prirazeni vyrazu -> rozhodnout se
      * */
+    bst_node_t** symbtable;
+
+    if(local_symbtab == NULL) {
+        symbtable = global_symbtab;
+        strcpy(frame_name, "GF");
+    } else {
+        symbtable = local_symbtab;
+        strcpy(frame_name, "LF");
+    }
 
     #define ASG_DEFVAR\
         new_var_name = (char *)calloc(strlen(token->content) + 1, sizeof(char));\
@@ -444,31 +460,44 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
             return 1;\
         }\
         strcpy(new_var_name, token->content);\
-		new_data_type[0] = '\0';\
-        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, token->content);
+		new_data_type[0] = '\0';
 
-    //Kontrola, jestli je promenna jiz definovana, pokud ne, definuje se
-    if(local_symbtab == NULL) {  //nejsme ve funkci, pristupujeme ke globalni tabulce
-        var_in_symbtab = bst_search(*global_symbtab, token->content);
-        if(var_in_symbtab == NULL) {   //promenna jeste neni definovana
-            char *frame_name = "GF";
-            ASG_DEFVAR
+    //kontrola, zda-li promenna uz neni definovana
+    var_in_symbtab = bst_search(*global_symbtab, token->content);
+    if(var_in_symbtab == NULL) {   //promenna jeste neni definovana
+        ASG_DEFVAR
+        if(IN_WHILE_LOOPS == 0) {
+            fprintf(stdout, "DEFVAR %s@%s\n", frame_name, token->content);
         } else {
-            new_var_name = var_in_symbtab->key;
+            //vygenerovani noveho pomocneho navesti pro pripad, ze
+            //parsujeme ve while-loopu, nezle tu definovat promenne,
+            //musime zabranit redefinici
+            char *no_redef_label = get_rand_name(symbtable, "_defvar_skip");
+            if(EXIT_CODE != 0) {
+                return 1;
+            }
+            bst_insert(symbtable, no_redef_label, label_id, NULL);
+            if(EXIT_CODE != 0) {
+                return 1;
+            }
+
+            fprintf(stdout, "TYPE %s@%s %s@%s\n", frame_name, NO_REDEF_TYPE_VAR,
+                                                  frame_name, token->content);
+            fprintf(stdout, "JMPIFNEQ %s %s@%s string@\n", no_redef_label,
+                frame_name, NO_REDEF_TYPE_VAR);
+            fprintf(stdout, "DEFVAR %s@%s\n", frame_name, token->content);
+            fprintf(stdout, "LABEL %s\n", no_redef_label);
         }
-    } else {    //jsme ve funkci, pristupujeme k lokalni tabulce symbolu
-        var_in_symbtab = bst_search(*local_symbtab, token->content);
-        if(var_in_symbtab == NULL) {  //promenna jeste neni definovana
-            char *frame_name = "LF";
-            ASG_DEFVAR
-        } else {
-            new_var_name = var_in_symbtab->key;
-        }
+    } else {    //promenna uz je definovana
+        new_var_name = var_in_symbtab->key;
+        new_data_type = var_in_symbtab->data_type;
     }
     //definovana je sice definovana ve vygenerovanem kodu, ale ne v tabulce symbolu
     //pokud by totiz byla pouzita ve vyrazu jeji definice, je to chyba
+    //do tabulky symbolu bude zarazena pozdeji
 
-	token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX); //pozere =
+    //muzem ho pozrat uz tu, protoze toto je assignment
 
     if(token->variant != assign_var) {  //neni prirazeni - chyba
         EXIT_CODE = 2;
@@ -485,12 +514,9 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
             //generovat move instrukci
 		} else {    //je to prirazeni vyrazu -> ENGAGE BOTTOM UP CHROUSTAC
 
-            //nejdriv musim pozrat '=' z vrcholu zasobniku:
-            next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-
             #define ASG_EXPR_PARSE\
                 bst_node_t *expr_result;\
-                expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, ass_table);\
+                expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, global_symbtab, false, true, IN_WHILE_LOOPS, ass_table);\
                 if(EXIT_CODE != 0) {\
                     free(new_var_name);\
                     free(new_data_type);\
@@ -500,7 +526,6 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
                                                     frame_name, expr_result->key);\
 
             if(local_symbtab == NULL) { //pracuju s globalni tabulkou
-                char *frame_name = "GF";
                 ASG_EXPR_PARSE
                 if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
                     bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
@@ -510,7 +535,6 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
                     var_in_symbtab->data_type[0] = expr_result->data_type[0];
                 }
             } else {    //pracuju s lokalni tabulkou
-                char *frame_name = "LF";
                 ASG_EXPR_PARSE
                 if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
                     bst_insert(local_symbtab, new_var_name, var_id, new_data_type);
@@ -522,20 +546,31 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
             }
         }
     }
+    return 0;
 }
 
-int SS_nt(stack_t *stack, bst_node_t **symbtab)
+int SS_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
 {
-	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 	if(token->variant == cls_curl_var)
 	{
-		printf("}\n");
+        next_stack_token(stack, &GET_NEXT_TOKEN_INDEX); //pozere {
 		return 0;
 	}else
 	{
-		printf("SS PART NOT FINNISHED YET\n");
-		return 1;
+        STAT_nt(stack, global_symbtab, local_symbtab);
+        if(EXIT_CODE != 0) {
+            return 1;
+        }
 	}
+
+    SS_nt(stack, global_symbtab, local_symbtab);
+
+    if(EXIT_CODE != 0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 /* int RET_nt(stack_t *stack, bst_node_t **global_symbtab) */
@@ -548,15 +583,210 @@ int SS_nt(stack_t *stack, bst_node_t **symbtab)
 
 /* } */
 
-/* int IF_nt(stack_t *stack, bst_node_t **global_symbtab) */
-/* { */
+int conditions_parse(bst_node_t *expr_result, bst_node_t **symbtable, char *frame_name, 
+        char *label_for_jmp) {
 
-/* } */
+    if(expr_result->data_type[0] == 's') {  //stringy se musi porovnat s "" a "0"
+        char *jmp_empty_string = get_rand_name(symbtable, "_jmp_decide");
+        char *jmp_zero_string = get_rand_name(symbtable, "_jmp_decide");
+        char *jmp_decider = get_rand_name(symbtable, "_jmp_decide");
+        if(EXIT_CODE != 0) {
+            free(jmp_empty_string);
+            free(jmp_zero_string);
+            free(jmp_decider);
+            return 1;
+        }
+        bst_insert(symbtable, jmp_empty_string, var_id, NULL);
+        bst_insert(symbtable, jmp_zero_string, var_id, NULL);
+        bst_insert(symbtable, jmp_decider, var_id, NULL);
+        //data_type na null, nikdy se jinde nepouzije a vim, ze je to bool
+        if(EXIT_CODE != 0) {
+            return 1;
+        }
+        
+        fprintf(stdout, "EQ %s@%s %s@%s string@\n", frame_name, jmp_empty_string,
+                                                    frame_name, expr_result->key);
+        fprintf(stdout, "EQ %s@%s %s@%s string@0\n", frame_name, jmp_zero_string,
+                                                    frame_name, expr_result->key);
+        fprintf(stdout, "OR %s@%s %s@%s %s@%s\n", frame_name, jmp_decider,
+                                                    frame_name, jmp_zero_string,
+                                                    frame_name, jmp_empty_string);
+        fprintf(stdout, "JMPIFEQ %s %s@%s bool@true\n", label_for_jmp, frame_name, jmp_decider);
 
-/* int CYC_nt(stack_t *stack, bst_node_t **global_symbtab) */
-/* { */
+    } else if(expr_result->data_type[0] == 'n') {  //s null bude porovnani vzdy false -> JMP
+        fprintf(stdout, "JMP %s\n", label_for_jmp);
+    } else {    //ostatni se porovnava jen se jednou veci
+        char compare_with_result[13];
+        switch(expr_result->data_type[0]) {
+            case 'b':
+                strcpy(compare_with_result, "bool@false");
+                break;
+            case 'i':
+                strcpy(compare_with_result, "int@0");
+                break;
+            case 'f':
+                strcpy(compare_with_result, "float@0x0p+0");
+                break;
+            default:
+                fprintf(stderr, "Interní chyba, neočekávaný datový typ v IF-u\n");
+                return 1;
+        }
 
-/* } */
+        fprintf(stdout, "JMPIFEQ %s %s@%s %s\n",
+            label_for_jmp, frame_name, expr_result->key, compare_with_result);
+    }
+    return 0;
+}
+
+int IF_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab) {
+	next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);    //pozere if
+
+    //zvoli, ktera z tabulek se bude pouzivat
+    bst_node_t **symbtable;
+    bool in_function;
+    char frame_name[3];
+    if(local_symbtab == NULL) {
+        symbtable = global_symbtab;
+        in_function = false;
+        strcpy(frame_name, "GF");
+    } else {
+        symbtable = local_symbtab;
+        in_function = true;
+        strcpy(frame_name, "LF");
+    }
+
+    bst_node_t *expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, symbtable, in_function, false, IN_WHILE_LOOPS, cond_table);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    //vygeneruje navesti pro podmineny skok a strci je do tabulky symbolu
+    char *label_for_else = get_rand_name(symbtable, "_else_label"); //label, kam se skoci v pripade neplatnosti podminky (else)
+    char *label_for_if = get_rand_name(symbtable, "_if_label");     //label, kam se skoci, aby se v pripade pravdivosti podminky neprovedl else 
+    if(EXIT_CODE != 0) {
+        free(label_for_else);
+        free(label_for_if);
+        return 1;
+    }
+    bst_insert(symbtable, label_for_else, label_id, NULL);
+    bst_insert(symbtable, label_for_if, label_id, NULL);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    //zpracuje podminku a vygeneruje prislusne instrukce
+    conditions_parse(expr_result, symbtable, frame_name, label_for_else);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+
+    SS_nt(stack, global_symbtab, local_symbtab);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+	token_t *first_token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	token_t *second_token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+    //kontrola,ze se zde nachazi "else {"
+    if(strcmp(first_token->content, "else") != 0)  {
+        EXIT_CODE = 2;
+        fprintf(stderr, "Syntaktická chyba na řádku:%d\nNeočekávaný lexém %s\n",
+            first_token->line_num, first_token->content);
+        return 1;
+    } else if (second_token->variant != open_curl_var) {
+        EXIT_CODE = 2;
+        fprintf(stderr, "Syntaktická chyba na řádku:%d\nNeočekávaný lexém %s\n",
+            second_token->line_num, second_token->content);
+        return 1;
+    }
+
+    fprintf(stdout, "JMP %s\n", label_for_if);
+    fprintf(stdout, "LABEL %s\n", label_for_else);
+
+    SS_nt(stack, global_symbtab, local_symbtab);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    fprintf(stdout, "LABEL %s\n", label_for_if);
+    return 0;
+}
+
+int CYC_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab)
+{
+	next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);    //pozere while
+
+    //zvoli, jaka tabulka se bude pouzivat a k jakemu frame-u se bude pristupovat
+    bst_node_t **symbtable;
+    bool in_function;
+    char frame_name[3];
+    if(local_symbtab == NULL) {
+        symbtable = global_symbtab;
+        in_function = false;
+        strcpy(frame_name, "GF");
+    } else {
+        symbtable = local_symbtab;
+        in_function = true;
+        strcpy(frame_name, "LF");
+    }
+
+    //pokud jeste v tomto scopu neni definovana promenna pro ukladani typu, definujeme ji
+    if(bst_search(*symbtable, NO_REDEF_TYPE_VAR) == NULL) {
+        char *no_redef_type = calloc(strlen(NO_REDEF_TYPE_VAR) + 1, 1);
+        if(no_redef_type == NULL) {
+            EXIT_CODE = 99;
+            fprintf(stderr, "Chyba alokace paměti!\n");\
+            return 1;
+        }
+        strcpy(no_redef_type, NO_REDEF_TYPE_VAR);
+        bst_insert(symbtable, no_redef_type, var_id, NULL);
+        if(EXIT_CODE != 0) {
+            return 1;
+        }
+        fprintf(stdout, "DEFVAR %s@%s\n", frame_name, no_redef_type);
+    }
+
+    //vytvoreni navesti pro konec a zacatek loop a vlozeni do tabulky symbolu 
+    char *start_loop = get_rand_name(symbtable, "_loop_start");
+    char *end_loop = get_rand_name(symbtable, "_loop_end");
+    if(EXIT_CODE != 0) {
+        free(start_loop);
+        free(end_loop);
+        return 1;
+    }
+    bst_insert(symbtable, start_loop, label_id, NULL);
+    bst_insert(symbtable, end_loop, label_id, NULL);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    fprintf(stdout, "LABEL %s\n", start_loop);
+
+    IN_WHILE_LOOPS++;
+
+    //parser zpracuje podminku a ulozi vysledek do expr_result
+    bst_node_t *expr_result = bottom_up_parser(stack, &GET_NEXT_TOKEN_INDEX, symbtable, in_function, false, IN_WHILE_LOOPS, cond_table);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    //zpracuje podminku a vygeneruje prislusne instrukce, aby se skocilo ZA cyklus
+    conditions_parse(expr_result, symbtable, frame_name, end_loop);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    SS_nt(stack, global_symbtab, local_symbtab);
+    if(EXIT_CODE != 0) {
+        return 1;
+    }
+
+    IN_WHILE_LOOPS--;
+
+    fprintf(stdout, "LABEL %s\n", end_loop);
+    return 0;
+}
 
 int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab, char *return_type)
 {

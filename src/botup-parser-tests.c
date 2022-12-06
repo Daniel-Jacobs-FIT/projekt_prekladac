@@ -38,10 +38,10 @@ void test_rand_names() {
     bst_node_t *symbol_table;
     bst_init(&symbol_table);
 
-    char *rand_name1 = get_rand_var_name(&symbol_table);
-    char *rand_name2 = get_rand_var_name(&symbol_table);
-    char *rand_name3 = get_rand_var_name(&symbol_table);
-    char *rand_name4 = get_rand_var_name(&symbol_table);
+    char *rand_name1 = get_rand_name(&symbol_table, "$rand_name");
+    char *rand_name2 = get_rand_name(&symbol_table, "$rand_name");
+    char *rand_name3 = get_rand_name(&symbol_table, "$rand_name");
+    char *rand_name4 = get_rand_name(&symbol_table, "$rand_name");
 
     printf("Random variable names:\n%s\n%s\n%s\n%s\n",
         rand_name1,
@@ -132,7 +132,7 @@ int main() {
 
     do {
         NEXT_TOKEN_INDEX--;
-        returned_ptr = bottom_up_parser(global_token_stack, &NEXT_TOKEN_INDEX, &table, false, true , ass_table);
+        returned_ptr = bottom_up_parser(global_token_stack, &NEXT_TOKEN_INDEX, &table, false, true , false, ass_table);
     } while (next_stack_token(global_token_stack, &NEXT_TOKEN_INDEX)->variant != end_prg_var);
 
     fprintf(stdout, "Exit code = %d\n", EXIT_CODE);

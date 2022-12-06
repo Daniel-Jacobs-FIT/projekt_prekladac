@@ -14,3 +14,4 @@ DEFVAR GF@$d
 DEFVAR GF@_expression915
 MOVE GF@_expression915 nil@nil
 MOVE GF@$d GF@_expression915
+EXIT_CODE = 0

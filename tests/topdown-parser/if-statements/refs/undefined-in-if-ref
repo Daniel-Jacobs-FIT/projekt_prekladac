@@ -1,0 +1,14 @@
+DEFVAR GF@$a
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@5
+MOVE GF@$a GF@_expression383
+DEFVAR GF@_expression886
+MOVE GF@_expression886 int@5
+DEFVAR GF@_expression777
+MOVE GF@_expression777 GF@$a
+DEFVAR GF@_expression915
+EQ GF@_expression915 GF@_expression886 GF@_expression777
+JMPIFEQ _else_label793 GF@_expression915 bool@false
+Chyba na řádku: 4
+Použití nedefinované proměnné $b
+EXIT_CODE = 5

@@ -1,0 +1,11 @@
+if(5) {
+
+    if(10) {
+        $a = 6;
+    } else {
+        $b = 14;
+    }
+    $else_vnoreneho_ifu = "jojo";
+} else {
+    $else_prvniho_ifu = 1;
+}
