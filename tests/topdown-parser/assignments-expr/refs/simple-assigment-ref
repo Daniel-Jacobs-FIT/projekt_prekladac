@@ -1,0 +1,16 @@
+DEFVAR GF@$a
+DEFVAR GF@_expression383
+MOVE GF@_expression383 int@69
+MOVE GF@$a GF@_expression383
+DEFVAR GF@$b
+DEFVAR GF@_expression886
+MOVE GF@_expression886 float@0x1.2666666666666p+2
+MOVE GF@$b GF@_expression886
+DEFVAR GF@$c
+DEFVAR GF@_expression777
+MOVE GF@_expression777 string@hello,\032world!
+MOVE GF@$c GF@_expression777
+DEFVAR GF@$d
+DEFVAR GF@_expression915
+MOVE GF@_expression915 nil@nil
+MOVE GF@$d GF@_expression915

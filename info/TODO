@@ -27,7 +27,7 @@ HOTOVE:
 
 NUTNE UDELAT:
     STAT (IF CYCL RET)
-    ASG EXPR
+    HOTOVO: ASG EXPR
     STAT -> EXPR
 
 Udelat top-down parser xd
