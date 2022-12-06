@@ -182,7 +182,7 @@ int psa_stack_split_top(stack_t *stack) {
 }
 
 /* 
-Provede realokaci (zmenseni(!) zasovnku o 1) a vlozi hodnotu elementu na vrchol zasobniku
+Provede realokaci (zmenseni(!) zasobniku o 1)
 Pri selhani realokace pameti vrati -1
 */
 int psa_stack_pop(stack_t *stack) {

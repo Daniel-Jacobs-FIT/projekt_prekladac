@@ -28,8 +28,9 @@ int SS_nt(stack_t *, bst_node_t **);
 int FDEF_nt(stack_t *, bst_node_t **);
 int SSD_nt(stack_t *, bst_node_t **);
 
-#define ERROR_OUT(MSG)\
-	printf("%s\n", MSG);\
+#define ERROR_OUT(MSG, LNUM, ERR_CODE)\
+	fprintf(stderr, MSG, LNUM);\
+	EXIT_CODE = ERR_CODE;\
 	return 1;
 
 
@@ -40,7 +41,7 @@ int inf_char_str(char *str, int input)
 		char *content = (char *)malloc(2);
 		if(content == NULL)
 		{
-			fprintf(stderr, "failed to allocate memory\n");
+			//failed to allocate memory
 			return -1;
 		}
 		content[0] = (char)input;
@@ -53,7 +54,7 @@ int inf_char_str(char *str, int input)
 		char *content = (char *)realloc((void *)str, str_size+2);
 		if(content == NULL)
 		{
-			fprintf(stderr, "failed to allocate memory\n");
+			//failed to allocate memory
 			return -1;
 		}
 		content[str_size] = (char)input;
@@ -89,7 +90,7 @@ int is_builtin_type(char *str)
 }
 
 //return type int (0 means successes, anything else is an error code)
-//do you create a stuff before or in PRG, logic seems to say in PRG, cause why would you want to deal with it in main
+//do you create the stack before or in PRG, logic seems to say in PRG, cause why would you want to deal with it in main
 //no tokens needed either since it can get the all by itself
 int PRG_nt()
 {
@@ -97,23 +98,17 @@ int PRG_nt()
 	bst_node_t **global_symbtab = (bst_node_t **)malloc(sizeof(bst_node_t *));
 	if(global_symbtab == NULL)
 	{
-		//TODO malloc failed
-		printf("Malloc failed in PRG\n");
-		return 1;
+		ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", 1, 99);
 	}
 	bst_init(global_symbtab);
 	int ret_val = push_all_tokens_to_stack(stack);
 	if(ret_val == 1)
 	{
-		//TODO failed to push all tokens to stack
-		printf("failed to push all tokens to stack\n");
-		return 1;
+		ERROR_OUT("\nChyba na řádku: %d\npři vkládání tokenů na stack\n", 1, 99);
 	}
 	if(ret_val == 2)
 	{
-		//TODO gotten err var durring lexical analysis
-		printf("gotten err var durring lexical analysis\n");
-		return 1;
+		ERROR_OUT("\nChyba na řádku: %d\npři lexikální analýze\n", 1, 1);
 	}
 	
 	SSD_nt(stack, global_symbtab);
@@ -189,28 +184,23 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 {
 	//GET_NEXT_TOKEN_INDEX gets incremented
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-	printf("%s ", token->content);
+	//printf("%s ", token->content); -> would print the 'function' keyword
 	token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
+	char *fce_name = token->content;
 	if(token->variant != identif_function_var)
 	{
-		//TODO ERROR EXPECTED FUNCTION NAME
-		printf("ERROR EXPECTED FUNCTION NAME\n");
-		return 1;
+		ERROR_OUT("\nChyba na řádku: %d\nočekávané jméno funkce\n", token->line_num, 2);
 	}else
 	{
 		//check if redef
 		//check if inbuilt
 		if(bst_search((*global_symbtab), token->content) != NULL)
 		{
-			//TODO ERROR REDEFINITION
-			printf("ERROR REDEFINITION\n");
-			return 1;
+			ERROR_OUT("\nChyba na řádku: %d\npokus o redefinici funkce\n", token->line_num, 3);
 		}
 		else if(is_builtin_fce(token->content) == 1)
 		{
-			//TODO REDEFINITION OF A BUILTIN FUNCTION
-			printf("REDEFINITION OF A BUILTIN FUNCTION\n");
-			return 1;
+			ERROR_OUT("\nChyba na řádku: %d\npokus o redefinici zabudované funkce\n", token->line_num, 3);
 		}
 		else
 		{
@@ -219,13 +209,12 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 			char *types = (char *)malloc(1);
 			if(types == NULL)
 			{
-				//TODO MALLOC FAIL
-				printf("MALLOC FAIL\n");
-				return 1;
+				ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
 			}
 			types[0] = '\0';
 			bst_insert(global_symbtab, token->content, func_id, types);
-			printf("%s(", token->content);
+			printf("JUMP %s-end\n", fce_name);
+			printf("LABEL %s-call\n", fce_name);
 
 			//get f_id again just to move pointer
 			next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
@@ -236,9 +225,7 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 				bst_node_t **local_symbtab = (bst_node_t **)malloc(sizeof(bst_node_t *));
 				if(local_symbtab == NULL)
 				{
-					//TODO malloc failed
-					printf("MALLOC FAIL\n");
-					return 1;
+					ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
 				}
 				bst_init(local_symbtab);
 				if(PL_nt(stack, types, local_symbtab) != 0)
@@ -255,49 +242,55 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 					{
 						if(is_builtin_type(token->content) || strcmp(token->content, "void") == 0)
 						{
-							inf_char_str(types, token->content[0]);
-							printf(": %s ", token->content);
+							if(token->content[0] != '?')
+							{
+								inf_char_str(types, token->content[0]);
+							}
+							else
+							{
+								inf_char_str(types, token->content[1]);
+							}
+							//printf(": %s ", token->content);
 							
 							token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 							if(token->variant == open_curl_var)
 							{
-								printf("{ \n");
+								//printf("{ \n");
 								if(SS_nt(stack, local_symbtab) != 0)
 								{
 									return 1;
 								}
+								//at the end of a function I need:
+								/*
+									- POPFRAME
+									- LABEL <fce_name>-end
+									- RETURN 
+								*/
+								printf("POPFRAME\n");
+								printf("RETURN\n");
+								printf("LABEL %s-end\n", fce_name);
 								return 0;
 							}else
 							{
-								//TODO EXPECTED '{' AFTER RETURN TYPE
-								printf("EXPECTED '{' AFTER RETURN TYPE\n");
-								return 1;
+								ERROR_OUT("\nChyba na řádku: %d\nočekávaný lexém '{' po návratovém typu\n", token->line_num, 2);
 							}
 						}
 						else
 						{
-							//TODO EXPECTED BUILTIN TYPE
-							printf("EXPECTED BUILTIN TYPE\n");
-							return 1;
+							ERROR_OUT("\nChyba na řádku: %d\nočekávaný zabudovaný datový typ\n", token->line_num, 2);
 						}
 					}
 					else
 					{
-						//TODO EXPECTED KEYWORD
-						printf("EXPECTED KEYWORD\n");
-						return 1;
+						ERROR_OUT("\nChyba na řádku: %d\nočekávané klíčové slovo\n", token->line_num, 2);
 					}
 				}else
 				{
-					//TODO EXPECTED ':' AFTER FUNCTION PARAMETERS
-					printf("EXPECTED ':' AFTER FUNCTION PARAMETERS\n");
-					return 1;
+					ERROR_OUT("\nChyba na řádku: %d\nočekávaný lexém ':' po parametrech funkce\n", token->line_num, 2);
 				}
 			}else
 			{
-				//TODO EXPECTED '(' char
-				printf("EXPECTED '(' char\n");
-				return 1;
+				ERROR_OUT("\nChyba na řádku: %d\nočekávaný lexém '('\n", token->line_num, 2);
 			}
 		}
 	}
@@ -307,10 +300,10 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 int PL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	char *type = NULL;
 	if(token->variant == cls_rnd_var)
 	{
 		//return successes
-		printf(") ");
 		return 0;
 	}
 	else if(token->variant == identif_keyword_var)
@@ -318,28 +311,41 @@ int PL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 add_param:
 		if(is_builtin_type(token->content))
 		{
+			type = (char *)malloc(1);
+			if(type == NULL)
+			{
+				ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
+			}
+			type[0] = '\0';
 			//add the data type of param 1 into types
-			inf_char_str(types, token->content[0]);
-			char *type = NULL;
-			inf_char_str(type, token->content[0]);
+			if(token->content[0] == '?')
+			{
+				inf_char_str(types, token->content[1]);
+				inf_char_str(type, token->content[1]);
+			}else
+			{
+				inf_char_str(types, token->content[0]);
+				inf_char_str(type, token->content[0]);
+			}
 			token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(token->variant == identif_variable_var)
 			{
 				//this is what we want to happen
 				bst_insert(symbtab, token->content, var_id, type);
-				printf("%s ", token->content);
+				free(type);
+				type = NULL;
+				//printf("%s ", token->content);
+				printf("DEFVAR LF@%s\n", token->content);
+				printf("POPS ");
+				parse_switch(token, "LF");
 			}
 			else
 			{
-				//TODO EXPECTED VARIABLE NAME AFTER DATA TYPE
-				printf("EXPECTED VARIABLE NAME AFTER DATA TYPE\n");
-				return 1;
+				ERROR_OUT("\nChyba na řádku: %d\nočekávané jméno promněné po datovém typu\n", token->line_num, 2);
 			}
 			token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(token->variant == cls_rnd_var)
 			{
-				//i can also jump but whatever
-				printf(") ");
 				//return successes
 				return 0;
 			}
@@ -358,24 +364,18 @@ add_param:
 			}
 			else
 			{
-				//TODO EXPECTED EITHER ')' OR ',' AFTER PARAMETER
-				printf("EXPECTED EITHER ')' OR ',' AFTER PARAMETER\n");
-				return 1;
+				ERROR_OUT("\nChyba na řádku: %d\nočekávaný lexém ')' nebo ',' po parametru\n", token->line_num, 2);
 			}
 		}
 		else
 		{
-			//TODO EXPECTED BUILTIN DATA TYPE
-			printf("EXPECTED BUILTIN DATA TYPE\n");
-			return 1;
+			ERROR_OUT("\nChyba na řádku: %d\nočekávaný zabudovaný datový typ\n", token->line_num, 2);
 		}
 	}
 	else
 	{
 expected_data_type:
-		//TODO EXPECTED DATA TYPE
-		printf("EXPECTED DATA TYPE\n");
-		return 1;
+		ERROR_OUT("\nChyba na řádku: %d\nočekávaný datový typ\n", token->line_num, 2);
 	}
 	return 0;
 }
@@ -481,15 +481,24 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         fprintf(stderr, "Syntaktická chyba na řádku: %d\nOčekáváno '='\n", token->line_num);
         return 1;
     } else {
+		//removes the assign token
+		next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+		//gets the fid token
+		token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 		if(token->variant == identif_function_var)  //je to volani funkce
 		{
 			if(FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type) != 0)
 			{
-				if(new_data_type[strlen(new_data_type)-1] == 'n')
-				{
-					ERROR_OUT("ERROR ASIGNING FROM A VOID FUNCTION");
-				}
 				return 1;
+			}else
+			{
+				//gen funkci
+				
+			}
+
+			if(new_data_type[strlen(new_data_type)-1] == 'n')
+			{
+				ERROR_OUT("\nChyba na řádku: %d\npřiřazení od funkce s navratovou hodnotou void\n", token->line_num, 2);
 			}
 
             //priradit do var_insymtab_data_type novy datatyp
@@ -541,13 +550,12 @@ int SS_nt(stack_t *stack, bst_node_t **symbtab)
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	if(token->variant == cls_curl_var)
 	{
-		printf("}\n");
 		return 0;
 	}else
 	{
-		printf("SS PART NOT FINNISHED YET\n");
-		return 1;
+		ERROR_OUT("\nLINE BLAZE IT: %d\nSS PART NOT FINNISHED YET\n", 420, 420);
 	}
+	return 0;
 }
 
 /* int RET_nt(stack_t *stack, bst_node_t **global_symbtab) */
@@ -578,18 +586,16 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 	char *types = (char *)malloc(1);
 	if(types == NULL)
 	{
-		//TODO MALLOC FAILED
-		ERROR_OUT("MALLOC FAILED");
+		ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
 	}
 	types[0] = '\0';
-	printf("%s ", token->content);
+	printf("CREATEFRAME\n");
 	if(local_symbtab == NULL)
 	{
 		//in global scope
 		if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
 		{
-			//TODO ERROR FUNCTION IS NOT DEFINED
-			ERROR_OUT("ERROR FUNCTION IS NOT DEFINED");
+			ERROR_OUT("\nChyba na řádku: %d\nfunkce nebyla definována před použitím\n", token->line_num, 3);
 		}
 		else
 		{
@@ -604,11 +610,12 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 					inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
 				}
 			}
-			printf("%s ", token->content);
 			//TODO check if return is ok
 			//the next stack token is the thing after f_id ie. '(' char
 			if(TL_nt(stack, searched_node->data_type, global_symbtab) == 0)
 			{
+				printf("PUSHFRAME\n");
+				printf("CALL %s-call\n", token->content);
 				return 0;
 			}
 			else
@@ -658,8 +665,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 							}
 							else
 							{
-								//TODO ERROR EXPECTED KEYWORD AS A RETURN
-								ERROR_OUT("ERROR EXPECTED KEYWORD AS A RETURN");
+								ERROR_OUT("\nChyba na řádku: %d\nnavratová hodnota není klíčové slovo\n", token->line_num, 2);
 							}
 							//end the search
 							goto end_loop;
@@ -670,8 +676,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 end_loop:
 			if(!found)
 			{
-				//TODO ERROR FID IS NOT FOUND
-				ERROR_OUT("ERROR FID IS NOT FOUND");
+				ERROR_OUT("\nChyba na řádku: %d\nfunkce nebyla definována před použitím\n", token->line_num, 3);
 			}
 			else
 			{
@@ -700,9 +705,11 @@ end_loop:
 			{
 				inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
 			}
-			printf("%s ", token->content);
+			//printf("what: %s ", token->content);
 			if(TL_nt(stack, searched_node->data_type, local_symbtab) == 0)
 			{
+				printf("PUSHFRAME\n");
+				printf("CALL %s-call\n", token->content);
 				return 0;
 			}else
 			{
@@ -717,72 +724,85 @@ end_loop:
 //TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
 int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
-	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX), *searched_token = NULL;
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	stack_t *all_params_stack = NULL;
+	all_params_stack = psa_stack_init();
 	int check_types_index = 0;
 
 	if(token->variant == open_rnd_var)
 	{
 		while((token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX))->variant != cls_rnd_var)
 		{
-			if(check_types_index > (int)strlen(types)-1)
+			//-2 to lose the return type and because of indexing from 0
+			if(check_types_index > (int)strlen(types)-2)
 			{
-				//TODO ERROR TOO MANY ARGUMENTS
-				ERROR_OUT("ERROR TOO MANY ARGUMENTS");
+				ERROR_OUT("\nChyba na řádku: %d\nneočekávaně velký počet argumentů\n", token->line_num, 4);
 			}
 			switch(token->variant)
 			{
 				case identif_variable_var:
 					if(bst_search((*symbtab), token->content) == NULL)
 					{
-						//TODO ERROR VARIABLE NOT DECLARED BEFORE USE
-						ERROR_OUT("ERROR VARIABLE NOT DECLARED BEFORE USE");
+						ERROR_OUT("\nChyba na řádku: %d\npromněná nebyla deklarována před použitím\n", token->line_num, 5);
 					}
-					printf("%s ", token->content);
+					psa_stack_push(all_params_stack, token);
 					break;
 				case integ_var:
 					if(types[check_types_index++] != 'i')
 					{
-						//TODO ERROR EXPECTED INT
-						ERROR_OUT("ERROR EXPECTED INT");
+						ERROR_OUT("\nChyba na řádku: %d\nneočekáváný int\n", token->line_num, 4);
 					}
-					printf("%s ", token->content);
+					psa_stack_push(all_params_stack, token);
 					break;
 				case float_var:
 					if(types[check_types_index++] != 'f')
 					{
-						//TODO ERROR EXPECTED FLOAT
-						ERROR_OUT("ERROR EXPECTED FLOAT");
+						ERROR_OUT("\nChyba na řádku: %d\nneočekáváný float\n", token->line_num, 4);
 					}
-					printf("%s ", token->content);
+					psa_stack_push(all_params_stack, token);
 					break;
 				case string_lit_end_var:
 					if(types[check_types_index++] != 's')
 					{
-						//TODO ERROR EXPECTED STRING
-						ERROR_OUT("ERROR EXPECTED STRING");
+						ERROR_OUT("\nChyba na řádku: %d\nneočekáváný řetězec\n", token->line_num, 4);
 					}
-					printf("%s ", token->content);
+					psa_stack_push(all_params_stack, token);
 					break;
 				case comma_var:
 					break;
 				default:
-					//TODO ERROR UNEXPECTED CHAR IN FUNCTION CALL
-					ERROR_OUT("ERROR UNEXPECTED CHAR IN FUNCTION CALL");
+				ERROR_OUT("\nChyba na řádku: %d\nočekáváný lexém\n", token->line_num, 2);
 			}
 		}
 		if(check_types_index != (int)strlen(types)-1)
 		{
-			//TODO ERROR TO FEW ARGUMENTS
-			ERROR_OUT("ERROR TO FEW ARGUMENTS");
+			ERROR_OUT("\nChyba na řádku: %d\nneočekávaně malý počet argumentů\n", token->line_num, 4);
 		}
 	}
 	else
 	{
-		//TODO ERROR EXPECTED '(' CHAR
-		ERROR_OUT("ERROR EXPECTED '(' CHAR");
+		ERROR_OUT("\nChyba na řádku: %d\nočekáváný lexém ')'\n", token->line_num, 2);
 	}
-	printf(") ");
-	printf(";");
+
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	if(token->variant != semicol_var)
+	{
+		ERROR_OUT("\nChyba na řádku: %d\nočekáváný lexém ';'\n", token->line_num, 2);
+	}
+	
+	token_t *print_token = NULL;
+	while(!psa_stack_is_empty(all_params_stack))
+	{
+		print_token = psa_stack_top_term(all_params_stack);
+		printf("PUSH ");
+		parse_switch(print_token, "LF");
+		if(psa_stack_pop(all_params_stack) == -1)
+		{
+				ERROR_OUT("\nChyba na řádku: %d\nChyba při realokaci paměti\n", token->line_num, 99);
+		}
+	}
+	psa_stack_dispose(all_params_stack);
+
 	return 0;
 }
 

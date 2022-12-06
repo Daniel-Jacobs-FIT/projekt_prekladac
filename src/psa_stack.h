@@ -31,7 +31,7 @@ token_t *psa_stack_get_nth_rev(stack_t *, int);
 
 token_t *psa_stack_top_term(stack_t *);
 
-int psa_stack_split_top(stack_t* );
+int psa_stack_split_top(stack_t *);
 
 int psa_stack_push(stack_t *, token_t *);
 
