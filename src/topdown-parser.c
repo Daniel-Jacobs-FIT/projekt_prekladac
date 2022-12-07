@@ -258,7 +258,7 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 							if(token->variant == open_curl_var)
 							{
 								//printf("{ \n");
-								if(SS_nt(stack, local_symbtab) != 0)
+								if(SS_nt(stack, global_symbtab, local_symbtab) != 0)
 								{
 									return 1;
 								}
@@ -511,10 +511,6 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         fprintf(stderr, "Syntaktická chyba na řádku: %d\nOčekáváno '='\n", token->line_num);
         return 1;
     } else {
-		//removes the assign token
-		next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-		//gets the fid token
-		token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 		if(token->variant == identif_function_var)  //je to volani funkce
 		{
 			if(FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type) != 0)
