@@ -1,3 +1,5 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xuherp02*/
 #include "psa_stack.h"
 
 //nextIndex zacina na 0

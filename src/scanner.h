@@ -1,3 +1,5 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xuherp02, xvolr00, xjacob00, xvener01*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>

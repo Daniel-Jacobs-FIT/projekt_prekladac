@@ -1,3 +1,6 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xvolfr00*/
+
 #include "botup-parser.h"
 
 const prec_table_t ass_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS] = {
@@ -775,7 +778,7 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
                         }
                         fprintf(stdout, "TYPE %s@%s %s@%s\n", frame_name, NO_REDEF_TYPE_VAR,
                                                               frame_name, new_key);
-                        fprintf(stdout, "JMPIFNEQ %s %s@%s string@\n", no_redef_label,
+                        fprintf(stdout, "JUMPIFNEQ %s %s@%s string@\n", no_redef_label,
                             frame_name, NO_REDEF_TYPE_VAR);
                         fprintf(stdout, "DEFVAR %s@%s\n", frame_name, new_key);
                         fprintf(stdout, "LABEL %s\n", no_redef_label);
