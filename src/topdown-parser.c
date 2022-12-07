@@ -596,7 +596,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
 
             fprintf(stdout, "TYPE %s@%s %s@%s\n", frame_name, NO_REDEF_TYPE_VAR,
                                                   frame_name, token->content);
-            fprintf(stdout, "JMPIFNEQ %s %s@%s string@\n", no_redef_label,
+            fprintf(stdout, "JUMPIFNEQ %s %s@%s string@\n", no_redef_label,
                 frame_name, NO_REDEF_TYPE_VAR);
             fprintf(stdout, "DEFVAR %s@%s\n", frame_name, token->content);
             fprintf(stdout, "LABEL %s\n", no_redef_label);
@@ -787,10 +787,10 @@ int conditions_parse(bst_node_t *expr_result, bst_node_t **symbtable, char *fram
         fprintf(stdout, "OR %s@%s %s@%s %s@%s\n", frame_name, jmp_decider,
                                                     frame_name, jmp_zero_string,
                                                     frame_name, jmp_empty_string);
-        fprintf(stdout, "JMPIFEQ %s %s@%s bool@true\n", label_for_jmp, frame_name, jmp_decider);
+        fprintf(stdout, "JUMPIFEQ %s %s@%s bool@true\n", label_for_jmp, frame_name, jmp_decider);
 
-    } else if(expr_result->data_type[0] == 'n') {  //s null bude porovnani vzdy false -> JMP
-        fprintf(stdout, "JMP %s\n", label_for_jmp);
+    } else if(expr_result->data_type[0] == 'n') {  //s null bude porovnani vzdy false -> JUMP
+        fprintf(stdout, "JUMP %s\n", label_for_jmp);
     } else {    //ostatni se porovnava jen se jednou veci
         char compare_with_result[13];
         switch(expr_result->data_type[0]) {
@@ -808,7 +808,7 @@ int conditions_parse(bst_node_t *expr_result, bst_node_t **symbtable, char *fram
                 return 1;
         }
 
-        fprintf(stdout, "JMPIFEQ %s %s@%s %s\n",
+        fprintf(stdout, "JUMPIFEQ %s %s@%s %s\n",
             label_for_jmp, frame_name, expr_result->key, compare_with_result);
     }
     return 0;
@@ -877,7 +877,7 @@ int IF_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbta
         return 1;
     }
 
-    fprintf(stdout, "JMP %s\n", label_for_if);
+    fprintf(stdout, "JUMP %s\n", label_for_if);
     fprintf(stdout, "LABEL %s\n", label_for_else);
 
     SS_nt(stack, global_symbtab, local_symbtab);
