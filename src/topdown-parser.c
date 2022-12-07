@@ -1312,8 +1312,7 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 	}
 	if(star_param_count != 0)
 	{
-		printf("PUSHS ");
-		parse_switch(star_param_count, frame_name);
+		printf("PUSHS int@%d\n", star_param_count);
 	}
 	psa_stack_dispose(all_params_stack);
 
