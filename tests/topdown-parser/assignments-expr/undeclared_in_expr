@@ -1,1 +1,4 @@
+<?php
+declare(strict_types=1);
+
 $_xd_moja_promenna = $no + 4 * 5;

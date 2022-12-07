@@ -7,6 +7,7 @@ int BUILTIN_TYPES_COUNT = 6;
 const char *builtin_types[] =  {"float", "?float", "int", "?int", "string", "?string"};
 int IN_WHILE_LOOPS = 0;
 bst_node_t *CURRENT_FUNCTION = NULL;
+bool FOUND_RETURN = false;
 
 /*
 --- What do I need to do
@@ -102,6 +103,11 @@ psa_stack_dispose(stack);
 
 int PRG_nt()
 {
+    prolog_check();
+    if(EXIT_CODE != 0) {
+        return 1;   //nemusime nic uvolnovat, jeste se nic nealokovalo
+    }
+
 	stack_t *stack = psa_stack_init();
 	bst_node_t **global_symbtab = (bst_node_t **)malloc(sizeof(bst_node_t *));
 	if(global_symbtab == NULL)
@@ -121,6 +127,8 @@ int PRG_nt()
 		free_prg();
 		ERROR_OUT("\nChyba na řádku: %d\npři lexikální analýze\n", 1, 1);
 	}
+
+    fprintf(stdout, ".IFJcode22\n");
 	
 	SSD_nt(stack, global_symbtab);
 	free_prg();
@@ -599,6 +607,8 @@ int RET_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         in_function = true;
         strcpy(frame_name, "LF");
     }
+
+    FOUND_RETURN = true;
 
     //zjistime datovy typ
     if(token->variant == semicol_var) { //prazdny vyraz

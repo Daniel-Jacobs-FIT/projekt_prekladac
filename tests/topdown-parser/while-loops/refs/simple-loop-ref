@@ -1,3 +1,4 @@
+.IFJcode22
 DEFVAR GF@$a
 DEFVAR GF@_expression383
 MOVE GF@_expression383 int@4
