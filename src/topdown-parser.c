@@ -88,7 +88,7 @@ It seems like I only should eat tokens (increment the "stack" index) when I find
 --- prob more but this is what I can think of ATM
 */
 int FCALL_nt(stack_t *, bst_node_t **, bst_node_t **, char *);
-int TL_nt(stack_t *, char *, bst_node_t **);
+int TL_nt(stack_t *, char *, bst_node_t **, bst_node_t **);
 int ASG_nt(stack_t *, bst_node_t **, bst_node_t **);
 int STAT_nt(stack_t *, bst_node_t **, bst_node_t **);
 int PL_nt(stack_t *, char *, bst_node_t **);
@@ -486,7 +486,7 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
 	token_t *first_token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 	token_t *second_token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX + 1);
 	if(first_token->variant == identif_variable_var && second_token->variant == assign_var) {//zpracuje ASG
-        ASG_nt(stack, global_symbtab, NULL);
+        ASG_nt(stack, global_symbtab, local_symbtab);
         if(EXIT_CODE != 0) {
             return 1;
         }
@@ -623,9 +623,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
 			if(return_data_type == 'v')
 			{
 				ERROR_OUT("\nChyba na řádku: %d\npřiřazení od funkce s navratovou hodnotou void\n", token->line_num, 2);
-			}
-
-			else {
+			} else {
 				if(local_symbtab == NULL) { //pracuju s globalni tabulkou
 					if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
 						bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
@@ -634,7 +632,16 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
 					} else {    //promenna je jiz definovana
 						var_in_symbtab->data_type[0] = return_data_type;
 					}
+				} else {
+					if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
+						bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
+						var_in_symbtab = bst_search(*global_symbtab, new_var_name);
+						var_in_symbtab->data_type[0] = return_data_type;
+					} else {    //promenna je jiz definovana
+						var_in_symbtab->data_type[0] = return_data_type;
+					}
 				}
+				fprintf(stdout, "POPS %s@%s\n", frame_name, var_in_symbtab->key);
 			}
 		} else {    //je to prirazeni vyrazu -> ENGAGE BOTTOM UP CHROUSTAC
 
@@ -956,7 +963,7 @@ int CYC_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
 }
 
 #define free_fcall()\
-free(types);\
+free(types);
 
 int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab, char *return_type)
 {
@@ -981,17 +988,19 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 		}
 		else
 		{
-			if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
+			if(return_type != NULL)
 			{
-				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-2];
+				if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
+				{
+					*return_type =  searched_node->data_type[strlen(searched_node->data_type)-2];
+				}
+				else
+				{
+					*return_type =  searched_node->data_type[strlen(searched_node->data_type)-1];
+				}
 			}
-			else
-			{
-				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-1];
-			}
-			//TODO check if return is ok
 			//the next stack token is the thing after f_id ie. '(' char
-			if(TL_nt(stack, searched_node->data_type, global_symbtab) == 0)
+			if(TL_nt(stack, searched_node->data_type, global_symbtab, global_symbtab) == 0)
 			{
 				printf("PUSHFRAME\n");
 				printf("CALL %s-call\n", token->content);
@@ -1014,7 +1023,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 			for(int i = GET_NEXT_TOKEN_INDEX; i <= stack->top; i++)
 			{
 				searched_token = psa_stack_get_nth_rev(stack, i);
-				if(searched_token->variant == identif_function_var)
+				if((searched_token->variant == identif_function_var) && (strcmp(searched_token->content, token->content) == 0))
 				{
 					found = 1;
 					for(int j = i; j <= stack->top; j++)
@@ -1037,8 +1046,6 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 									return 1;
 								}
 							}
-							CURRENT_FUNCTION->data_type = types;
-							//TODO
 						}
 						else if(searched_token->variant == cls_rnd_var)
 						{
@@ -1061,8 +1068,6 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 										return 1;
 									}
 								}
-								CURRENT_FUNCTION->data_type = types;
-								//TODO
 							}
 							else
 							{
@@ -1092,8 +1097,10 @@ end_loop:
 					*return_type =  types[strlen(types)-1];
 				}
 
-				if(TL_nt(stack, types, local_symbtab) == 0)
+				if(TL_nt(stack, types, local_symbtab, global_symbtab) == 0)
 				{
+					printf("PUSHFRAME\n");
+					printf("CALL %s-call\n", token->content);
 					free_fcall();
 					return 0;
 				}else
@@ -1114,7 +1121,7 @@ end_loop:
 				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-1];
 			}
 			//printf("what: %s ", token->content);
-			if(TL_nt(stack, searched_node->data_type, local_symbtab) == 0)
+			if(TL_nt(stack, searched_node->data_type, local_symbtab, global_symbtab) == 0)
 			{
 				printf("PUSHFRAME\n");
 				printf("CALL %s-call\n", token->content);
@@ -1133,9 +1140,24 @@ end_loop:
 
 //only one symbtab because I am calling it from different places and it doesnt have to look "out of scope"
 //TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
-int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
+int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **global_symbtab)
 {
-	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX-1);
+	char *types = NULL;
+	/* printf("symbtab:\n"); */
+	/* bst_print_tree((*symbtab)); */
+	/* printf("-----------------------------------------\n"); */
+	/* printf("global_symbtab:\n"); */
+	/* bst_print_tree((*global_symbtab)); */
+
+	if(bst_search((*global_symbtab), token->content) == NULL)
+	{
+		types = local_types;
+	}else
+	{
+		types = bst_search((*global_symbtab), token->content)->data_type;
+	}
+	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	stack_t *all_params_stack = NULL;
 	//all_params_stack is automatically disposed
 	all_params_stack = psa_stack_init();
