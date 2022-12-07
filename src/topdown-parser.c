@@ -8,7 +8,72 @@ const char *builtin_types[] =  {"float", "?float", "int", "?int", "string", "?st
 int IN_WHILE_LOOPS = 0;
 bst_node_t *CURRENT_FUNCTION = NULL;
 bool FOUND_RETURN = false;
+//temp def
 
+typedef enum direction { left, right, nil } direction_t;
+const char *subtree_prefix = "  |";
+const char *space_prefix = "   ";
+void bst_print_node(bst_node_t *);
+char *make_prefix(char *, const char *);
+void bst_print_subtree(bst_node_t *, char *, direction_t);
+void bst_print_tree(bst_node_t *);
+
+
+
+
+void bst_print_node(bst_node_t *node) {
+    printf("[%s, %d, %s]", node->key, node->sym_var, node->data_type);
+}
+
+char *make_prefix(char *prefix, const char *suffix) {
+  char *result = (char *)malloc(strlen(prefix) + strlen(suffix) + 1);
+  strcpy(result, prefix);
+  result = strcat(result, suffix);
+  return result;
+}
+
+void bst_print_subtree(bst_node_t *tree, char *prefix, direction_t from) {
+  if (tree != NULL) {
+    char *current_subtree_prefix = make_prefix(prefix, subtree_prefix);
+    char *current_space_prefix = make_prefix(prefix, space_prefix);
+
+    if (from == left) {
+      printf("%s\n", current_subtree_prefix);
+    }
+
+    bst_print_subtree(
+        tree->right,
+        from == left ? current_subtree_prefix : current_space_prefix, right);
+
+    printf("%s  +-", prefix);
+    bst_print_node(tree);
+    printf("\n");
+
+    bst_print_subtree(
+        tree->left,
+        from == right ? current_subtree_prefix : current_space_prefix, left);
+
+    if (from == right) {
+      printf("%s\n", current_subtree_prefix);
+    }
+
+    free(current_space_prefix);
+    free(current_subtree_prefix);
+  }
+}
+
+void bst_print_tree(bst_node_t *tree) {
+  printf("Binary tree structure:\n");
+  printf("\n");
+  if (tree != NULL) {
+    bst_print_subtree(tree, "", nil);
+  } else {
+    printf("Tree is empty\n");
+  }
+  printf("\n");
+}
+
+//end temp def
 /*
 --- What do I need to do
 create a function for every part of the grammer we have defined
@@ -39,9 +104,9 @@ int CYC_nt(stack_t *, bst_node_t **, bst_node_t **);
 	EXIT_CODE = ERR_CODE;\
 	return 1;
 
-int inf_char_str(char *str, int input)
+int inf_char_str(char **str, int input)
 {
-	if(str == NULL)
+	if((*str) == NULL)
 	{
 		char *content = (char *)malloc(2);
 		if(content == NULL)
@@ -51,11 +116,11 @@ int inf_char_str(char *str, int input)
 		}
 		content[0] = (char)input;
 		content[1] = '\0';
-		str = content;
+		(*str) = content;
 	}
 	else {
-		int str_size = strlen(str);
-		char *content = (char *)realloc((void *)str, str_size+2);
+		int str_size = strlen((*str));
+		char *content = (char *)realloc((void *)(*str), str_size+2);
 		if(content == NULL)
 		{
 			//failed to allocate memory
@@ -63,7 +128,7 @@ int inf_char_str(char *str, int input)
 		}
 		content[str_size] = (char)input;
 		content[str_size+1] = '\0';
-		str = content;
+		(*str) = content;
 	}
 	return 0;
 }
@@ -214,7 +279,13 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 				ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
 			}
 			types[0] = '\0';
-			bst_insert(global_symbtab, token->content, func_id, types);
+			char *new_key = (char *)calloc(strlen(token->content)+1, 1);
+			if(new_key == NULL)
+			{
+				ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
+			}
+			strcpy(new_key, token->content);
+			bst_insert(global_symbtab, new_key, func_id, types);
 			CURRENT_FUNCTION = bst_search((*global_symbtab), token->content);
 			printf("JUMP %s-end\n", fce_name);
 			printf("LABEL %s-call\n", fce_name);
@@ -245,13 +316,14 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 					{
 						if(is_builtin_type(token->content) || strcmp(token->content, "void") == 0)
 						{
+							types = CURRENT_FUNCTION->data_type;
 							if(token->content[0] != '?')
 							{
-								inf_char_str(types, token->content[0]);
+								inf_char_str(&types, token->content[0]);
 							}
 							else
 							{
-								inf_char_str(types, token->content[1]);
+								inf_char_str(&types, token->content[1]);
 							}
 							CURRENT_FUNCTION->data_type = types;
 							//TODO
@@ -327,19 +399,33 @@ add_param:
 			//add the data type of param 1 into types
 			if(token->content[0] == '?')
 			{
-				inf_char_str(types, token->content[1]);
+				inf_char_str(&types, token->content[1]);
 			}else
 			{
-				inf_char_str(types, token->content[0]);
+				inf_char_str(&types, token->content[0]);
 			}
 			CURRENT_FUNCTION->data_type = types;
 			token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(token->variant == identif_variable_var)
 			{
 				printf("strlen check\n");
-				inf_char_str(type, types[strlen(types)-1]);
+				printf("type: %s, types: %s\n", type, types);
+				if(inf_char_str(&type, types[strlen(types)-1]) == -1)
+				{
+					printf("inf fail\n");
+				}
 				//this is what we want to happen
-				bst_insert(symbtab, token->content, var_id, type);
+				printf("before:\n");
+				bst_print_tree((*symbtab));
+				char *new_key = (char *)calloc(strlen(token->content)+1, 1);
+				if(new_key == NULL)
+				{
+					ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
+				}
+				strcpy(new_key, token->content);
+				bst_insert(symbtab, new_key, var_id, type);
+				printf("-------------------------\nafter:\n");
+				bst_print_tree((*symbtab));
 				type = NULL;
 				//printf("%s ", token->content);
 				printf("DEFVAR LF@%s\n", token->content);
@@ -515,24 +601,33 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         free(new_data_type);
         fprintf(stderr, "Syntaktická chyba na řádku: %d\nOčekáváno '='\n", token->line_num);
         return 1;
-    } else 
-	{
+    } else {
 		token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 		if(token->variant == identif_function_var)  //je to volani funkce
 		{
 			//token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
-			if(FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type) != 0)
+			char return_data_type = '\0';
+			if(FCALL_nt(stack, global_symbtab, local_symbtab, &return_data_type) != 0)
 			{
 				return 1;
 			}
 
-			if(new_data_type[strlen(new_data_type)-1] == 'v')
+			if(return_data_type == 'v')
 			{
 				ERROR_OUT("\nChyba na řádku: %d\npřiřazení od funkce s navratovou hodnotou void\n", token->line_num, 2);
 			}
 
-            //priradit do var_insymtab_data_type novy datatyp
-            //generovat move instrukci
+			else {
+				if(local_symbtab == NULL) { //pracuju s globalni tabulkou
+					if(var_in_symbtab == NULL) {    //promenna jeste nebyla definovana
+						bst_insert(global_symbtab, new_var_name, var_id, new_data_type);
+						var_in_symbtab = bst_search(*global_symbtab, new_var_name);
+						var_in_symbtab->data_type[0] = return_data_type;
+					} else {    //promenna je jiz definovana
+						var_in_symbtab->data_type[0] = return_data_type;
+					}
+				}
+			}
 		} else {    //je to prirazeni vyrazu -> ENGAGE BOTTOM UP CHROUSTAC
 
             #define ASG_EXPR_PARSE\
@@ -878,16 +973,13 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 		}
 		else
 		{
-			if(return_type != NULL)
+			if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
 			{
-				if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
-				{
-					inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-2]);
-				}
-				else
-				{
-					inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
-				}
+				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-2];
+			}
+			else
+			{
+				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-1];
 			}
 			//TODO check if return is ok
 			//the next stack token is the thing after f_id ie. '(' char
@@ -924,10 +1016,10 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 						{
 							if(searched_token->content[0] == '?')
 							{
-								inf_char_str(types, searched_token->content[1]);
+								inf_char_str(&types, searched_token->content[1]);
 							}else
 							{
-								inf_char_str(types, searched_token->content[0]);
+								inf_char_str(&types, searched_token->content[0]);
 							}
 							CURRENT_FUNCTION->data_type = types;
 							//TODO
@@ -940,10 +1032,10 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 							{
 								if(searched_token->content[0] == '?')
 								{
-									inf_char_str(types, searched_token->content[1]);
+									inf_char_str(&types, searched_token->content[1]);
 								}else
 								{
-									inf_char_str(types, searched_token->content[0]);
+									inf_char_str(&types, searched_token->content[0]);
 								}
 								CURRENT_FUNCTION->data_type = types;
 								//TODO
@@ -967,16 +1059,15 @@ end_loop:
 			}
 			else
 			{
-				if(return_type != NULL)
+				if(types[strlen(types)-1] == '?')
 				{
-					if(types[strlen(types)-1] == '?')
-					{
-						inf_char_str(return_type, types[strlen(types)-2]);
-					}else
-					{
-						inf_char_str(return_type, types[strlen(types)-1]);
-					}
+					*return_type =  types[strlen(types)-2];
 				}
+				else
+				{
+					*return_type =  types[strlen(types)-1];
+				}
+
 				if(TL_nt(stack, types, local_symbtab) == 0)
 				{
 					free_fcall();
@@ -990,9 +1081,13 @@ end_loop:
 		}
 		else //when in local scope, but we do find the definition in global symbtab
 		{
-			if(return_type != NULL)
+			if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
 			{
-				inf_char_str(return_type, searched_node->data_type[strlen(searched_node->data_type)-1]);
+				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-2];
+			}
+			else
+			{
+				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-1];
 			}
 			//printf("what: %s ", token->content);
 			if(TL_nt(stack, searched_node->data_type, local_symbtab) == 0)
