@@ -11,7 +11,7 @@
 
 int PRG_nt();
 int FCALL_nt(stack_t *, bst_node_t **, bst_node_t **, char *);
-int TL_nt(stack_t *, char *, bst_node_t **);
+int TL_nt(stack_t *, char *, bst_node_t **, bst_node_t **);
 int ASG_nt(stack_t *, bst_node_t **, bst_node_t **);
 int STAT_nt(stack_t *, bst_node_t **, bst_node_t **);
 int PL_nt(stack_t *, char *, bst_node_t **);

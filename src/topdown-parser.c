@@ -12,7 +12,7 @@ bst_node_t *CURRENT_FUNCTION = NULL;
 bool FOUND_RETURN = false;
 
 const char built_in_functions[NUM_OF_BUILT_IN_FUNCS][10] = {"reads", "readi", "readf", "write", "floatval", "intval", "strval", "strlen", "substring", "ord", "chr"};
-const char built_in_data_types[NUM_OF_BUILT_IN_FUNCS][6] = {"s", "i", "f", "*", "+f", "+i", "+s", "siis", "si", "is"};
+const char built_in_data_types[NUM_OF_BUILT_IN_FUNCS][6] = {"s", "i", "f", "*", "+f", "+i", "+s", "si", "siis", "si", "is"};
 const char built_in_source[NUM_OF_BUILT_IN_FUNCS][1680] = {
     "JUMP readi_end\nLABEL readi_start\nCREATEFRAME\nPUSHFRAME\n\nDEFVAR LF@readi_input\nREAD LF@readi_input int\nPUSHS LF@readi_input\n\nPOPFRAME\nRETURN\nLABEL readi_end\n",
     "JUMP readf_end\nLABEL readf_start\nCREATEFRAME\nPUSHFRAME\n\nDEFVAR LF@readf_input\nREAD LF@readf_input float \nPUSHS LF@readf_input\n\nPOPFRAME\nRETURN\nLABEL readf_end\n",
@@ -216,6 +216,8 @@ int PRG_nt()
 
     in_built_func_dump(global_symbtab);
 	
+	/* bst_print_tree((*global_symbtab)); */
+
 	SSD_nt(stack, global_symbtab);
 	free_prg();
 	return 0;
@@ -1011,6 +1013,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 		}
 		else
 		{
+			//here
 			if(return_type != NULL)
 			{
 				if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
@@ -1135,6 +1138,7 @@ end_loop:
 		}
 		else //when in local scope, but we do find the definition in global symbtab
 		{
+			//here
 			if(searched_node->data_type[strlen(searched_node->data_type)-1] == '?')
 			{
 				*return_type =  searched_node->data_type[strlen(searched_node->data_type)-2];
@@ -1167,13 +1171,9 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 {
 	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX-1);
 	char *types = NULL;
-	/* printf("symbtab:\n"); */
-	/* bst_print_tree((*symbtab)); */
-	/* printf("-----------------------------------------\n"); */
-	/* printf("global_symbtab:\n"); */
-	/* bst_print_tree((*global_symbtab)); */
 
-	if(bst_search((*global_symbtab), token->content) == NULL)
+	/* bst_print_tree((*global_symbtab)); */
+	if(bst_search((*global_symbtab), token->content) == NULL)	//nenasel v tabulce symbolu
 	{
 		types = local_types;
 	}else
@@ -1190,11 +1190,55 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 	{
 		while((token = copy_token(stack, &GET_NEXT_TOKEN_INDEX))->variant != cls_rnd_var)
 		{
+			switch(types[check_types_index])
+			{
+				case '+':
+					++check_types_index;
+					switch(token->variant)
+					{
+						case identif_variable_var:
+							if(bst_search((*symbtab), token->content) == NULL)
+							{
+								ERROR_OUT("\nChyba na řádku: %d\npromněná nebyla deklarována před použitím\n", token->line_num, 5);
+							}
+							psa_stack_push(all_params_stack, token);
+							continue;
+						case comma_var:
+							free(token);
+							continue;
+						default:
+							psa_stack_push(all_params_stack, token);
+							continue;
+					}
+				break;
+				case '*':
+					switch(token->variant)
+					{
+						case identif_variable_var:
+							if(bst_search((*symbtab), token->content) == NULL)
+							{
+								ERROR_OUT("\nChyba na řádku: %d\npromněná nebyla deklarována před použitím\n", token->line_num, 5);
+							}
+							psa_stack_push(all_params_stack, token);
+							continue;
+						case comma_var:
+							free(token);
+							continue;
+						default:
+							psa_stack_push(all_params_stack, token);
+							continue;
+					}
+				break;
+				default:
+				break;
+			}
+
 			//-2 to lose the return type and because of indexing from 0
 			if(check_types_index > (int)strlen(types)-2)
 			{
 				ERROR_OUT("\nChyba na řádku: %d\nneočekávaně velký počet argumentů\n", token->line_num, 4);
 			}
+
 			switch(token->variant)
 			{
 				case identif_variable_var:
@@ -1253,7 +1297,7 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 	while(!psa_stack_is_empty(all_params_stack))
 	{
 		print_token = psa_stack_top_term(all_params_stack);
-		printf("PUSH ");
+		printf("PUSHS ");
 		parse_switch(print_token, "LF");
 		if(psa_stack_pop(all_params_stack) == -1)
 		{
