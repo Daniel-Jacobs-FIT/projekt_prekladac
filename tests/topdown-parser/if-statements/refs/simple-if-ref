@@ -1,3 +1,4 @@
+.IFJcode22
 DEFVAR GF@_expression383
 MOVE GF@_expression383 string@umm
 EQ GF@_jmp_decide915 GF@_expression383 string@

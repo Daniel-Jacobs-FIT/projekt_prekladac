@@ -1,3 +1,4 @@
+.IFJcode22
 DEFVAR GF@_expression383
 MOVE GF@_expression383 int@5
 JMPIFEQ _else_label886 GF@_expression383 int@0
