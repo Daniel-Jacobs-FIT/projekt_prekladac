@@ -1172,6 +1172,7 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX-1);
 	char *types = NULL;
 	char frame_name[3];
+	int star_param_count = 0;
 
 	/* bst_print_tree((*global_symbtab)); */
 	if(bst_search((*global_symbtab), token->content) == NULL)	//nenasel v tabulce symbolu
@@ -1223,12 +1224,14 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 								ERROR_OUT("\nChyba na řádku: %d\npromněná nebyla deklarována před použitím\n", token->line_num, 5);
 							}
 							psa_stack_push(all_params_stack, token);
+							++star_param_count;
 							continue;
 						case comma_var:
 							free(token);
 							continue;
 						default:
 							psa_stack_push(all_params_stack, token);
+							++star_param_count;
 							continue;
 					}
 				break;
@@ -1306,6 +1309,11 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 		{
 				ERROR_OUT("\nChyba na řádku: %d\nChyba při realokaci paměti\n", token->line_num, 99);
 		}
+	}
+	if(star_param_count != 0)
+	{
+		printf("PUSHS ");
+		parse_switch(star_param_count, frame_name);
 	}
 	psa_stack_dispose(all_params_stack);
 
