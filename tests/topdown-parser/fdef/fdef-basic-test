@@ -1,9 +1,9 @@
-function fid():void{}
+<?php
+declare(strict_types=1);
 
-function hell(?string $help, string $me, int $trapped): ?float{}
+function function_id(int $a, int $b, ?int $c) : ?float {
 
-function hello( string $up, int $away  ): float{}
+return 6.9;
+}
 
-function f(float $away, ?float $inside):?string{}
-
-function r(float $me, int $myself)  :  ?string  {}
+$a = function_id(1, 2, 3);

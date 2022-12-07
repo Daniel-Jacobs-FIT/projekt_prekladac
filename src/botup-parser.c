@@ -679,7 +679,7 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
         ending_token = open_curl_var;       //analyza konci, kdyz stack_top(term) = { && vstup = {
     }
 
-    current_input = next_stack_token(global_token_stack, global_stack_index);
+    current_input = copy_token(global_token_stack, global_stack_index);
 
     do {
         top_term_of_stack = psa_stack_top_term(stack);
@@ -690,7 +690,7 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
             case eq:
                 psa_stack_push(stack, current_input);
                 BUP_ERR_HANDLE;
-                current_input = next_stack_token(global_token_stack, global_stack_index);
+                current_input = copy_token(global_token_stack, global_stack_index);
                 BUP_ERR_HANDLE;
                 break;
             case ls:
@@ -698,7 +698,7 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
                 BUP_ERR_HANDLE;
                 psa_stack_push(stack, current_input);
                 BUP_ERR_HANDLE;
-                current_input = next_stack_token(global_token_stack, global_stack_index);
+                current_input = copy_token(global_token_stack, global_stack_index);
                 BUP_ERR_HANDLE;
                 break;
             case gr:
@@ -907,3 +907,27 @@ char *get_rand_name(bst_node_t **symb_table, char *beginning) {
 
     return rand_name;
 }
+
+token_t *copy_token(stack_t *global_token_stack, int *global_stack_index) {
+    token_t *token_from_global_stack = next_stack_token(global_token_stack, global_stack_index);
+    token_t *copy = malloc(sizeof(token_t));
+    if(copy == NULL) {
+        fprintf(stderr, "Chyba alokace paměti!\n");
+        EXIT_CODE = 99;
+        return NULL;
+    }
+    if(token_from_global_stack->content != NULL) {
+        copy->content = calloc(strlen(token_from_global_stack->content) + 1, 1);
+        strcpy(copy->content, token_from_global_stack->content);
+    } else {
+        copy->content = NULL; 
+    }
+
+    copy->variant = token_from_global_stack->variant;
+    copy->line_num = token_from_global_stack->line_num;
+
+    return copy;
+}
+
+
+

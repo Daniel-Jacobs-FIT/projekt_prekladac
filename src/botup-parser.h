@@ -42,4 +42,6 @@ bst_node_t *bottom_up_parser(stack_t *, int *, bst_node_t **, bool, bool, bool, 
 
 char *get_rand_name(bst_node_t **, char *);
 
+token_t *copy_token(stack_t *, int *);
+
 #endif
