@@ -25,7 +25,7 @@ typedef enum {gr, ls, eq, ER} prec_table_t;
         }\
         fprintf(stdout, "TYPE %s@%s %s@%s\n", frame_name, NO_REDEF_TYPE_VAR,\
                                               frame_name, TO_DEFVAR);\
-        fprintf(stdout, "JMPIFNEQ %s %s@%s string@\n", no_redef_label,\
+        fprintf(stdout, "JUMPIFNEQ %s %s@%s string@\n", no_redef_label,\
             frame_name, NO_REDEF_TYPE_VAR);\
         fprintf(stdout, "DEFVAR %s@%s\n", frame_name, TO_DEFVAR);\
         fprintf(stdout, "LABEL %s\n", no_redef_label);\
