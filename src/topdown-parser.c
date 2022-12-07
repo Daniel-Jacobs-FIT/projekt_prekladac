@@ -1171,13 +1171,16 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 {
 	token_t *token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX-1);
 	char *types = NULL;
+	char frame_name[3];
 
 	/* bst_print_tree((*global_symbtab)); */
 	if(bst_search((*global_symbtab), token->content) == NULL)	//nenasel v tabulce symbolu
 	{
+		strcpy(frame_name, "LF");
 		types = local_types;
 	}else
 	{
+		strcpy(frame_name, "GF");
 		types = bst_search((*global_symbtab), token->content)->data_type;
 	}
 	token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
@@ -1298,7 +1301,7 @@ int TL_nt(stack_t *stack, char *local_types, bst_node_t **symbtab, bst_node_t **
 	{
 		print_token = psa_stack_top_term(all_params_stack);
 		printf("PUSHS ");
-		parse_switch(print_token, "LF");
+		parse_switch(print_token, frame_name);
 		if(psa_stack_pop(all_params_stack) == -1)
 		{
 				ERROR_OUT("\nChyba na řádku: %d\nChyba při realokaci paměti\n", token->line_num, 99);
