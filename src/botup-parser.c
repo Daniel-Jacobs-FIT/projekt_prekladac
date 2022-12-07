@@ -882,8 +882,11 @@ bst_node_t *bottom_up_parser(stack_t *global_token_stack,
 
     } while (current_input->variant != ending_token || top_term_of_stack->variant != ending_token || top_token_of_stack->variant != expression_var);
 
+    bst_node_t *returned_node = bst_search(*symb_table, top_token_of_stack->content);
+    psa_stack_dispose(stack);
+    free(current_input);
     //v pripade uspechu, navraceni ukazatele na promennou, v niz je ulozen vysledek vyrazu
-    return bst_search(*symb_table, top_token_of_stack->content);
+    return returned_node;
 }
 
 /*

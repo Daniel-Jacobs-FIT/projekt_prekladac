@@ -984,6 +984,8 @@ bool prolog_check() {
         input = getc(stdin);
         fsm_state = fsm_step(input, token, false);
     }
+    free_token(token);
+
     if(string_check(DECLARE_FLAG) == false) {
         EXIT_CODE = 2;
         fprintf(stderr, "Syntaktická chyba, nekorektní formát hlavičky\n");
