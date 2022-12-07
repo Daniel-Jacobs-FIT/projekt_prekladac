@@ -1,15 +1,33 @@
 #include "topdown-parser.h"
 
 int GET_NEXT_TOKEN_INDEX = 0;
-int BUILTIN_FUNCTIONS_COUNT = 8;
-const char *builtin_functions[] = {"reads", "readi", "readf", "write", "strlen", "substring", "ord", "chr"};
+#define NUM_OF_BUILT_IN_FUNCS 11
+int BUILTIN_FUNCTIONS_COUNT = NUM_OF_BUILT_IN_FUNCS ;
 int BUILTIN_TYPES_COUNT = 6;
-const char *builtin_types[] =  {"float", "?float", "int", "?int", "string", "?string"};
+const char *built_in_types[] =  {"float", "?float", "int", "?int", "string", "?string"};
 int IN_WHILE_LOOPS = 0;
 bst_node_t *CURRENT_FUNCTION = NULL;
 bool FOUND_RETURN = false;
-//temp def
 
+const char built_in_functions[NUM_OF_BUILT_IN_FUNCS][10] = {"reads", "readi", "readf", "write", "floatval", "intval", "strval", "strlen", "substring", "ord", "chr"};
+const char built_in_data_types[NUM_OF_BUILT_IN_FUNCS][6] = {"s", "i", "f", "*", "+f", "+i", "+s", "siis", "si", "is"};
+const char built_in_source[NUM_OF_BUILT_IN_FUNCS][1680] = {
+    "JUMP readi_end\nLABEL readi_start\nCREATEFRAME\nPUSHFRAME\n\nDEFVAR LF@readi_input\nREAD LF@readi_input int\nPUSHS LF@readi_input\n\nPOPFRAME\nRETURN\nLABEL readi_end\n",
+    "JUMP readf_end\nLABEL readf_start\nCREATEFRAME\nPUSHFRAME\n\nDEFVAR LF@readf_input\nREAD LF@readf_input float \nPUSHS LF@readf_input\n\nPOPFRAME\nRETURN\nLABEL readf_end\n",
+    "JUMP reads_end\nLABEL reads_start\nCREATEFRAME\nPUSHFRAME\n\nDEFVAR LF@reads_input\nREAD LF@reads_input string \nPUSHS LF@reads_input\n\nPOPFRAME\nRETURN\nLABEL reads_end\n ",
+    "JUMP write_end\nLABEL write_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@num_of_terms\nPOPS LF@num_of_terms\nDEFVAR LF@current_term\nLABEL write_while_start\nJUMPIFEQ write_while_end LF@num_of_terms int@0\nPOPS LF@current_term\nWRITE LF@current_term\nSUB LF@num_of_terms LF@num_of_terms int@1\nJUMP write_while_start\nLABEL write_while_end\nPOPFRAME\nRETURN\nLABEL write_end\n",
+    "JUMP floatval_end\nLABEL floatval_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@floatval_input\nDEFVAR LF@floatval_output\nDEFVAR LF@fv_type\nDEFVAR LF@fv_int_type\nPOPS LF@floatval_input\nTYPE LF@fv_type LF@floatval_input\nSTRI2INT LF@fv_int_type LF@fv_type int@0 \nJUMPIFEQ fv_int_label LF@fv_int_type int@105\nJUMPIFEQ fv_nil_label LF@fv_int_type int@110 \nJUMPIFEQ fv_float_label LF@fv_int_type int@102\nLABEL fv_int_label\nINT2FLOAT LF@floatval_output LF@floatval_input\nPUSHS LF@floatval_output\nJUMP floatval_finish\nLABEL fv_float_label\nMOVE LF@floatval_output LF@floatval_input\nPUSHS LF@floatval_output\nJUMP floatval_finish\nLABEL fv_nil_label\nMOVE LF@floatval_output float@0x0p+0\nPUSHS LF@floatval_output\nJUMP floatval_finish\nLABEL floatval_finish\nPOPFRAME\nRETURN\nLABEL floatval_end\n",
+    "JUMP intval_end\nLABEL intval_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@intval_input\nDEFVAR LF@intval_output\nDEFVAR LF@intval_type\nDEFVAR LF@intval_int_type\nPOPS LF@intval_input\nTYPE LF@intval_type LF@intval_input\nSTRI2INT LF@intval_int_type LF@intval_type int@0 \nJUMPIFEQ intval_int_label LF@intval_int_type int@105\nJUMPIFEQ intval_nil_label LF@intval_int_type int@110 \nJUMPIFEQ intval_float_label LF@intval_int_type int@102\nLABEL intval_int_label\nMOVE LF@intval_output LF@intval_input\nPUSHS LF@intval_output\nJUMP intval_finish\nLABEL intval_float_label\nFLOAT2INT LF@intval_output LF@intval_input\nPUSHS LF@intval_output\nJUMP intval_finish\nLABEL intval_nil_label\nMOVE LF@intval_output int@0\nPUSHS LF@intval_output\nJUMP intval_finish\nLABEL intval_finish\nPOPFRAME\nRETURN\nLABEL intval_end\n",
+    "#MISSING STRVAL!\n",  //TODO
+    "JUMP strlen_end\nLABEL strlen_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@strlen_input\nDEFVAR LF@strlen_output\nPOPS LF@strlen_input\nSTRLEN LF@strlen_output LF@strlen_input\nPUSHS LF@strlen_output\nPOPFRAME\nRETURN\nLABEL strlen_end\n",
+    "JUMP substring_end\nLABEL substring_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@substring_input_string\nDEFVAR LF@substring_input_i \nDEFVAR LF@substring_input_j\nDEFVAR LF@substring_output\nDEFVAR LF@temp_string\nDEFVAR LF@condition_bool\nDEFVAR LF@substring_strlen\nPOPS LF@substring_input_string\nPOPS LF@substring_input_i\nPOPS LF@substring_input_j\nSTRLEN LF@substring_strlen LF@substring_input_string\nLT LF@condition_bool LF@substring_input_j int@0\nJUMPIFEQ index_error LF@condition_bool bool@true\nLT LF@condition_bool LF@substring_input_i int@0\nJUMPIFEQ index_error LF@condition_bool bool@true\nGT LF@condition_bool LF@substring_input_i LF@substring_input_j\nJUMPIFEQ index_error LF@condition_bool bool@true\nGT LF@condition_bool LF@substring_input_j LF@substring_strlen\nJUMPIFEQ index_error LF@condition_bool bool@true\nGT LF@condition_bool LF@substring_input_i LF@substring_strlen\nJUMPIFEQ index_error LF@condition_bool bool@true\nEQ LF@condition_bool LF@substring_input_i LF@substring_strlen\nJUMPIFEQ index_error LF@condition_bool bool@true\nJUMPIFEQ index_error LF@substring_input_i LF@substring_input_j\nGETCHAR LF@substring_output LF@substring_input_string LF@substring_input_i\nLABEL string_loop\nADD LF@substring_input_i LF@substring_input_i int@1\nJUMPIFEQ substring_push LF@substring_input_i LF@substring_input_j\nGETCHAR LF@temp_string LF@substring_input_string LF@substring_input_i\nCONCAT LF@substring_output LF@substring_output LF@temp_string \nJUMP string_loop\nLABEL substring_push\nPUSHS LF@substring_output\nWRITE LF@substring_output\nJUMP substring_finish\nLABEL index_error\nPUSHS nil@nil\nLABEL substring_finish\nPOPFRAME\nRETURN\nLABEL substring_end\n",
+    "JUMP ord_end\nLABEL ord_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@ord_temp\nDEFVAR LF@ord_input\nDEFVAR LF@ord_output\nPOPS LF@ord_input\nSTRLEN LF@ord_temp LF@ord_input\nJUMPIFEQ strlen_zero LF@ord_temp int@0\nSTRI2INT LF@ord_temp LF@ord_input int@0 \nMOVE LF@ord_output LF@ord_temp\nJUMP strlen_finish\nLABEL strlen_zero\nMOVE LF@ord_output int@0\nJUMP strlen_finish\nLABEL strlen_finish\nPUSHS LF@ord_output\nPOPFRAME\nRETURN\nLABEL ord_end\n",
+    "JUMP chr_end\nLABEL chr_start\nCREATEFRAME\nPUSHFRAME\nDEFVAR LF@chr_input\nDEFVAR LF@chr_output\nPOPS LF@chr_input\nINT2CHAR LF@chr_output LF@chr_input\nWRITE LF@chr_output\nPOPFRAME\nRETURN\nLABEL chr_end\n"};
+
+
+
+
+//TODO smazat, depracated:
 typedef enum direction { left, right, nil } direction_t;
 const char *subtree_prefix = "  |";
 const char *space_prefix = "   ";
@@ -87,17 +105,6 @@ make a frame (table of symbols) for checking if variables are being defined or t
 It seems like I only should eat tokens (increment the "stack" index) when I find it in a terminal, cause I dont know what all it can be
 --- prob more but this is what I can think of ATM
 */
-int FCALL_nt(stack_t *, bst_node_t **, bst_node_t **, char *);
-int TL_nt(stack_t *, char *, bst_node_t **);
-int ASG_nt(stack_t *, bst_node_t **, bst_node_t **);
-int STAT_nt(stack_t *, bst_node_t **, bst_node_t **);
-int PL_nt(stack_t *, char *, bst_node_t **);
-int SS_nt(stack_t *, bst_node_t **, bst_node_t **);
-int FDEF_nt(stack_t *, bst_node_t **);
-int SSD_nt(stack_t *, bst_node_t **);
-int IF_nt(stack_t *, bst_node_t **, bst_node_t **);
-int RET_nt(stack_t *, bst_node_t **, bst_node_t **);
-int CYC_nt(stack_t *, bst_node_t **, bst_node_t **);
 
 #define ERROR_OUT(MSG, LNUM, ERR_CODE)\
 	fprintf(stderr, MSG, LNUM);\
@@ -136,7 +143,7 @@ int is_builtin_fce(char *str)
 {
 	for(int i = 0; i < BUILTIN_FUNCTIONS_COUNT; i++)
 	{
-		if(strcmp(str, builtin_functions[i]) == 0)
+		if(strcmp(str, built_in_functions[i]) == 0)
 		{
 			return 1;
 		}
@@ -148,7 +155,7 @@ int is_builtin_type(char *str)
 {
 	for(int i = 0; i < BUILTIN_TYPES_COUNT; i++)
 	{
-		if(strcmp(str, builtin_types[i]) == 0)
+		if(strcmp(str, built_in_types[i]) == 0)
 		{
 			return 1;
 		}
@@ -192,6 +199,8 @@ int PRG_nt()
 	}
 
     fprintf(stdout, ".IFJcode22\n");
+
+    in_built_func_dump(global_symbtab);
 	
 	SSD_nt(stack, global_symbtab);
 	free_prg();
@@ -1220,3 +1229,32 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 	return 0;
 }
 
+void in_built_func_dump(bst_node_t **symbtable) {
+    char *func_name;
+    char *func_data_types;
+
+    for(int i = 0; i < NUM_OF_BUILT_IN_FUNCS; i++) {
+
+        fprintf(stdout, "%s\n", built_in_source[i]);
+
+        func_name = calloc(strlen(built_in_functions[i]) + 1, 1);
+        func_data_types = calloc(strlen(built_in_data_types[i]) + 1, 1);
+        if(func_name == NULL || func_data_types == NULL) {
+            free(func_name);
+            free(func_data_types);
+            EXIT_CODE = 99;
+            fprintf(stderr, "Chyba alokace paměti!\n");
+            return;
+        }
+
+        strcpy(func_name, built_in_functions[i]);
+        strcpy(func_data_types, built_in_data_types[i]);
+
+        bst_insert(symbtable, func_name, func_id, func_data_types);
+        if(EXIT_CODE != 0) {
+            free(func_name);
+            free(func_data_types);
+            return;
+        }
+    }
+}
