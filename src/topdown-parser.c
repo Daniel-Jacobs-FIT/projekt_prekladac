@@ -111,8 +111,7 @@ int inf_char_str(char **str, int input)
 		char *content = (char *)malloc(2);
 		if(content == NULL)
 		{
-			//failed to allocate memory
-			return -1;
+			ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", 1, 99);
 		}
 		content[0] = (char)input;
 		content[1] = '\0';
@@ -123,8 +122,7 @@ int inf_char_str(char **str, int input)
 		char *content = (char *)realloc((void *)(*str), str_size+2);
 		if(content == NULL)
 		{
-			//failed to allocate memory
-			return -1;
+			ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", 1, 99);
 		}
 		content[str_size] = (char)input;
 		content[str_size+1] = '\0';
@@ -320,10 +318,18 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 							if(token->content[0] != '?')
 							{
 								inf_char_str(&types, token->content[0]);
+								if(EXIT_CODE != 0)
+								{
+									return 1;
+								}
 							}
 							else
 							{
 								inf_char_str(&types, token->content[1]);
+								if(EXIT_CODE != 0)
+								{
+									return 1;
+								}
 							}
 							CURRENT_FUNCTION->data_type = types;
 							//TODO
@@ -400,23 +406,28 @@ add_param:
 			if(token->content[0] == '?')
 			{
 				inf_char_str(&types, token->content[1]);
+				if(EXIT_CODE != 0)
+				{
+					return 1;
+				}
 			}else
 			{
 				inf_char_str(&types, token->content[0]);
+				if(EXIT_CODE != 0)
+				{
+					return 1;
+				}
 			}
 			CURRENT_FUNCTION->data_type = types;
 			token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(token->variant == identif_variable_var)
 			{
-				printf("strlen check\n");
-				printf("type: %s, types: %s\n", type, types);
-				if(inf_char_str(&type, types[strlen(types)-1]) == -1)
+				inf_char_str(&type, types[strlen(types)-1]);
+				if(EXIT_CODE != 0)
 				{
-					printf("inf fail\n");
+					return 1;
 				}
 				//this is what we want to happen
-				printf("before:\n");
-				bst_print_tree((*symbtab));
 				char *new_key = (char *)calloc(strlen(token->content)+1, 1);
 				if(new_key == NULL)
 				{
@@ -424,10 +435,7 @@ add_param:
 				}
 				strcpy(new_key, token->content);
 				bst_insert(symbtab, new_key, var_id, type);
-				printf("-------------------------\nafter:\n");
-				bst_print_tree((*symbtab));
 				type = NULL;
-				//printf("%s ", token->content);
 				printf("DEFVAR LF@%s\n", token->content);
 				printf("POPS ");
 				parse_switch(token, "LF");
@@ -1017,9 +1025,17 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 							if(searched_token->content[0] == '?')
 							{
 								inf_char_str(&types, searched_token->content[1]);
+								if(EXIT_CODE != 0)
+								{
+									return 1;
+								}
 							}else
 							{
 								inf_char_str(&types, searched_token->content[0]);
+								if(EXIT_CODE != 0)
+								{
+									return 1;
+								}
 							}
 							CURRENT_FUNCTION->data_type = types;
 							//TODO
@@ -1033,9 +1049,17 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 								if(searched_token->content[0] == '?')
 								{
 									inf_char_str(&types, searched_token->content[1]);
+									if(EXIT_CODE != 0)
+									{
+										return 1;
+									}
 								}else
 								{
 									inf_char_str(&types, searched_token->content[0]);
+									if(EXIT_CODE != 0)
+									{
+										return 1;
+									}
 								}
 								CURRENT_FUNCTION->data_type = types;
 								//TODO
@@ -1111,7 +1135,7 @@ end_loop:
 //TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
 int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
-	token_t *token = copy_token(stack, &GET_NEXT_TOKEN_INDEX);
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	stack_t *all_params_stack = NULL;
 	//all_params_stack is automatically disposed
 	all_params_stack = psa_stack_init();
@@ -1157,6 +1181,7 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 					psa_stack_push(all_params_stack, token);
 					break;
 				case comma_var:
+					free(token);
 					break;
 				default:
 				ERROR_OUT("\nChyba na řádku: %d\nočekáváný lexém\n", token->line_num, 2);
@@ -1166,6 +1191,7 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 		{
 			ERROR_OUT("\nChyba na řádku: %d\nneočekávaně malý počet argumentů\n", token->line_num, 4);
 		}
+		free(token);
 	}
 	else
 	{
