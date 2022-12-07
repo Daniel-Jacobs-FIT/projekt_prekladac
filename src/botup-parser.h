@@ -1,3 +1,5 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xvolfr00*/
 #ifndef BOTUP_PARSER_H
 #define BOTUP_PARSER_H
 

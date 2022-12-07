@@ -1,3 +1,6 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xvolfr00*/
+
 #include "botup-parser.h"
 
 const prec_table_t ass_table[NUM_OF_TOKEN_VARS][NUM_OF_TOKEN_VARS] = {

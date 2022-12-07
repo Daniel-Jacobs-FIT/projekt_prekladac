@@ -1,3 +1,5 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xuherp02, xvolr00, xvener01, xjacob00*/
 #include "topdown-parser.h"
 
 int GET_NEXT_TOKEN_INDEX = 0;

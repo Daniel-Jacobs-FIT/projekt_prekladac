@@ -1,3 +1,5 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xuherp02*/
 #ifndef PSA_STACK_H
 #define PSA_STACK_H
 

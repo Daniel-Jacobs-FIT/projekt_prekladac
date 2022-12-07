@@ -1,3 +1,5 @@
+/* Projekt: Implementace překladače imperativního jazyka IFJ22
+ * Autoři: xuherp02, xvolr00*/
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
