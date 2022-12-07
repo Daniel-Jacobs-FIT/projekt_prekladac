@@ -1111,7 +1111,7 @@ end_loop:
 //TL_nt(stack_t *stack, bst_node_t *node, token_t *token, bst_node_t **symbtab);
 int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
-	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
+	token_t *token = copy_token(stack, &GET_NEXT_TOKEN_INDEX);
 	stack_t *all_params_stack = NULL;
 	//all_params_stack is automatically disposed
 	all_params_stack = psa_stack_init();
@@ -1119,7 +1119,7 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 
 	if(token->variant == open_rnd_var)
 	{
-		while((token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX))->variant != cls_rnd_var)
+		while((token = copy_token(stack, &GET_NEXT_TOKEN_INDEX))->variant != cls_rnd_var)
 		{
 			//-2 to lose the return type and because of indexing from 0
 			if(check_types_index > (int)strlen(types)-2)
