@@ -253,6 +253,8 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 							{
 								inf_char_str(types, token->content[1]);
 							}
+							CURRENT_FUNCTION->data_type = types;
+							//TODO
 							//printf(": %s ", token->content);
 							
 							token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
@@ -330,9 +332,11 @@ add_param:
 			{
 				inf_char_str(types, token->content[0]);
 			}
+			CURRENT_FUNCTION->data_type = types;
 			token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(token->variant == identif_variable_var)
 			{
+				printf("strlen check\n");
 				inf_char_str(type, types[strlen(types)-1]);
 				//this is what we want to happen
 				bst_insert(symbtab, token->content, var_id, type);
@@ -522,7 +526,7 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
 				return 1;
 			}
 
-			if(new_data_type[strlen(new_data_type)-1] == 'n')
+			if(new_data_type[strlen(new_data_type)-1] == 'v')
 			{
 				ERROR_OUT("\nChyba na řádku: %d\npřiřazení od funkce s navratovou hodnotou void\n", token->line_num, 2);
 			}
@@ -925,6 +929,8 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 							{
 								inf_char_str(types, searched_token->content[0]);
 							}
+							CURRENT_FUNCTION->data_type = types;
+							//TODO
 						}
 						else if(searched_token->variant == cls_rnd_var)
 						{
@@ -939,6 +945,8 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 								{
 									inf_char_str(types, searched_token->content[0]);
 								}
+								CURRENT_FUNCTION->data_type = types;
+								//TODO
 							}
 							else
 							{
@@ -1081,7 +1089,6 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 		print_token = psa_stack_top_term(all_params_stack);
 		printf("PUSH ");
 		parse_switch(print_token, "LF");
-		//invalid free?
 		if(psa_stack_pop(all_params_stack) == -1)
 		{
 				ERROR_OUT("\nChyba na řádku: %d\nChyba při realokaci paměti\n", token->line_num, 99);
