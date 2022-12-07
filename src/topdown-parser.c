@@ -97,6 +97,11 @@ int is_builtin_type(char *str)
 //no tokens needed either since it can get the all by itself
 int PRG_nt()
 {
+    prolog_check();
+    if(EXIT_CODE != 0) {
+        return 1;   //nemusime nic uvolnovat, jeste se nic nealokovalo
+    }
+
 	stack_t *stack = psa_stack_init();
 	bst_node_t **global_symbtab = (bst_node_t **)malloc(sizeof(bst_node_t *));
 	if(global_symbtab == NULL)

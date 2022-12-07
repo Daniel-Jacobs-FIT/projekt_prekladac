@@ -3,6 +3,7 @@
 #include "scanner.h"
 
 const char *OPEN_SIGN = "<?php";
+const char *DECLARE_FLAG = "declare(strict_types=1);";
 const char *TOKEN_VAR_NAMES[] = {ALL_TOKEN_VARS}; //TODO
 const int KEYWORD_COUNT = 13;
 const char *keywords[] = {"else", "float", "?float", "function", "if", "int", "?int", "null", "return", "string", "?string", "void", "while"};
@@ -441,11 +442,12 @@ scanner_state_t default_logic(int input, token_t *token)
 /* Funkce pro overeni, ze standartni vstup na zacatku obsahuje znaky SIGN
  * sign = znacka ke kontrole 
  * */
-bool string_check(char *sign) {
+bool string_check(const char *sign) {
     int sign_len = strlen(sign);
     ++sign_len; //inkrementace, aby se terminalni znak \0 vesel do bufferu
 
     char buffer[sign_len];
+    memset(buffer, '\0', sign_len);
 
     fgets(buffer, sign_len, stdin);
     
@@ -541,8 +543,12 @@ bool hex_sequence(int input, token_t *token) {
  * input = znak nacteny ze vstupu
  * token = token, do ktereho se ma zapsat lexem
  * */
-scanner_state_t fsm_step(int input, token_t *token) {
+scanner_state_t fsm_step(int input, token_t *token, bool reset) {
     static scanner_state_t fsm_state = default_s;
+
+    if(reset == true) { //po odstraneni hlavicky bude fsm_state identif_s, nutne resetovat
+        fsm_state = default_s;
+    }
 
     switch(fsm_state) {
         case default_s :
@@ -952,14 +958,41 @@ token_t *get_token() {
     static int line_counter = 1;
 
     token_t *current_token = create_token(NULL, none, line_counter);
+
+    input_char = getc(stdin);
+    fsm_step(input_char, current_token, true);  //po odstraneni hlavicky, resetuje fsm
+
     while(current_token->variant == none) {
         input_char = getc(stdin);
-        fsm_step(input_char, current_token);
+        fsm_step(input_char, current_token, false);
     }
 
     line_counter = current_token->line_num;
     return current_token;
 }
+
+bool prolog_check() {
+    if(string_check(OPEN_SIGN) == false) { //inkorektni <?php
+        EXIT_CODE = 2;
+        fprintf(stderr, "Syntaktická chyba, nekorektní formát hlavičky\n");
+        return false;
+    }
+    scanner_state_t fsm_state = default_s;
+    token_t *token = create_token(NULL, none, 0);
+    char input;
+    while(fsm_state != identif_s && token->variant != err_var && token->variant != end_prg_var) {
+        input = getc(stdin);
+        fsm_state = fsm_step(input, token, false);
+    }
+    if(string_check(DECLARE_FLAG) == false) {
+        EXIT_CODE = 2;
+        fprintf(stderr, "Syntaktická chyba, nekorektní formát hlavičky\n");
+        return false;
+    }
+
+    return true;
+}
+
 
 /* Funkce pro praci s tokeny*/
 

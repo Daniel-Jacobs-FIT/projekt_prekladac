@@ -68,9 +68,11 @@ typedef struct token_struct{
     int line_num;
 } token_t;
 
-bool string_check(char *sign);
+bool string_check(const char *sign);
 
-scanner_state_t fsm_step(int input, token_t *token);
+bool prolog_check();
+
+scanner_state_t fsm_step(int , token_t *, bool);
 
 token_t *get_token();
 

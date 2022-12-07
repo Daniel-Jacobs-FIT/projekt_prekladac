@@ -9,6 +9,6 @@ MOVE GF@_expression777 GF@$a
 DEFVAR GF@_expression915
 EQ GF@_expression915 GF@_expression886 GF@_expression777
 JMPIFEQ _else_label793 GF@_expression915 bool@false
-Chyba na řádku: 4
+Chyba na řádku: 6
 Použití nedefinované proměnné $b
 EXIT_CODE = 5
