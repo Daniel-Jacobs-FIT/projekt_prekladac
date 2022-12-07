@@ -95,26 +95,35 @@ int is_builtin_type(char *str)
 //return type int (0 means successes, anything else is an error code)
 //do you create the stack before or in PRG, logic seems to say in PRG, cause why would you want to deal with it in main
 //no tokens needed either since it can get the all by itself
+#define free_prg()\
+bst_dispose(global_symbtab);\
+free(global_symbtab);\
+psa_stack_dispose(stack);
+
 int PRG_nt()
 {
 	stack_t *stack = psa_stack_init();
 	bst_node_t **global_symbtab = (bst_node_t **)malloc(sizeof(bst_node_t *));
 	if(global_symbtab == NULL)
 	{
+		free_prg();
 		ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", 1, 99);
 	}
 	bst_init(global_symbtab);
 	int ret_val = push_all_tokens_to_stack(stack);
 	if(ret_val == 1)
 	{
+		free_prg();
 		ERROR_OUT("\nChyba na řádku: %d\npři vkládání tokenů na stack\n", 1, 99);
 	}
 	if(ret_val == 2)
 	{
+		free_prg();
 		ERROR_OUT("\nChyba na řádku: %d\npři lexikální analýze\n", 1, 1);
 	}
 	
 	SSD_nt(stack, global_symbtab);
+	free_prg();
 	return 0;
 }
 
@@ -158,33 +167,16 @@ int SSD_nt(stack_t *stack, bst_node_t **global_symbtab)
         return 1;
     }
 	return 0;
-	/*
-		- id = <EXPR>
-		- id = <FCALL>
-		- if ( <EXPR> <SS> else { <SS> 
-		- while ( <EXPR> <SS>
-		- f_id ( <TL> ;
-		- return ;
-		- return <EXPR> ;
-	*/
-	/* if else(token->variant == identif_keyword_var || token->variant == identif_variable_var || token->variant == identif_function_var) */
-	/* { */
-	/* 	//identif_keyword check (cause I cant have all keywords, that would be just ridiculus) */
-	/* 	if(strcmp(token->content, "if") || strcmp(token->content, "while"), strcmp(token->content, "return")) */
-	/* 	{ */
-	/* 	} */
-	/* 	//all vars are legal, just check/add them into glabal_symtab, since I am not in a function yet */
-	/* 	//with function_var I have to just check if it exists globaly, since I am not in a function yet */
-	/* } */
-	//what is in a fdef:
-	/*
-		- function f_id ( <PL> : par_t { <SS>
-	*/
 }
-// ik that the first keyword is a function and so I can just print it
+
+#define free_fdef()\
+bst_dispose(local_symbtab);\
+free(local_symbtab);
+
 int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 {
 	//GET_NEXT_TOKEN_INDEX gets incremented
+	FOUND_RETURN = false;
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	//printf("%s ", token->content); -> would print the 'function' keyword
 	token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
@@ -206,7 +198,7 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 		}
 		else
 		{
-			//get params/return type in a string ie. float f(int, int) = "fii" <- malloc'ed
+			//get params/return type in a string ie. float f(int, int) = "iif" <- malloc'ed
 			//and the key(function name) that is malloced as well
 			char *types = (char *)malloc(1);
 			if(types == NULL)
@@ -215,6 +207,7 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 			}
 			types[0] = '\0';
 			bst_insert(global_symbtab, token->content, func_id, types);
+			CURRENT_FUNCTION = bst_search((*global_symbtab), token->content);
 			printf("JUMP %s-end\n", fce_name);
 			printf("LABEL %s-call\n", fce_name);
 
@@ -263,31 +256,39 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 									return 1;
 								}
 								//at the end of a function I need:
-								/*
-									- POPFRAME
-									- LABEL <fce_name>-end
-									- RETURN 
-								*/
+								if(types[strlen(types)-1] != 'v')
+								{
+									if(FOUND_RETURN == false)
+									{
+										ERROR_OUT("\nChyba na řádku: %d\nočekávaný return\n", token->line_num, 6);
+									}
+								}
+								CURRENT_FUNCTION = NULL;
 								printf("POPFRAME\n");
 								printf("RETURN\n");
 								printf("LABEL %s-end\n", fce_name);
+								free_fdef();
 								return 0;
 							}else
 							{
+								free_fdef();
 								ERROR_OUT("\nChyba na řádku: %d\nočekávaný lexém '{' po návratovém typu\n", token->line_num, 2);
 							}
 						}
 						else
 						{
+							free_fdef();
 							ERROR_OUT("\nChyba na řádku: %d\nočekávaný zabudovaný datový typ\n", token->line_num, 2);
 						}
 					}
 					else
 					{
+						free_fdef();
 						ERROR_OUT("\nChyba na řádku: %d\nočekávané klíčové slovo\n", token->line_num, 2);
 					}
 				}else
 				{
+					free_fdef();
 					ERROR_OUT("\nChyba na řádku: %d\nočekávaný lexém ':' po parametrech funkce\n", token->line_num, 2);
 				}
 			}else
@@ -301,8 +302,8 @@ int FDEF_nt(stack_t *stack, bst_node_t **global_symbtab)
 
 int PL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
-	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	char *type = NULL;
+	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	if(token->variant == cls_rnd_var)
 	{
 		//return successes
@@ -313,28 +314,20 @@ int PL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 add_param:
 		if(is_builtin_type(token->content))
 		{
-			type = (char *)malloc(1);
-			if(type == NULL)
-			{
-				ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
-			}
-			type[0] = '\0';
 			//add the data type of param 1 into types
 			if(token->content[0] == '?')
 			{
 				inf_char_str(types, token->content[1]);
-				inf_char_str(type, token->content[1]);
 			}else
 			{
 				inf_char_str(types, token->content[0]);
-				inf_char_str(type, token->content[0]);
 			}
 			token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(token->variant == identif_variable_var)
 			{
+				inf_char_str(type, types[strlen(types)-1]);
 				//this is what we want to happen
 				bst_insert(symbtab, token->content, var_id, type);
-				free(type);
 				type = NULL;
 				//printf("%s ", token->content);
 				printf("DEFVAR LF@%s\n", token->content);
@@ -392,10 +385,10 @@ int STAT_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symb
             return 1;
         }
     } else if(first_token->variant == identif_function_var) {   //volani void funkce
-        //TODO: FCALL
-            fprintf(stderr, "FCALL from statement not implemented yet!\n"); 
-            EXIT_CODE = 69;
-            return 1;
+		if(FCALL_nt(stack, global_symbtab, local_symbtab, NULL) != 0)
+		{
+			return 1;
+		}
     } else if(first_token->variant == identif_keyword_var) {
         //makro pro ukonceni funkce z vetvi
         #define STAT_ERR_RET\
@@ -510,16 +503,15 @@ int ASG_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
         free(new_data_type);
         fprintf(stderr, "Syntaktická chyba na řádku: %d\nOčekáváno '='\n", token->line_num);
         return 1;
-    } else {
+    } else 
+	{
+		token = psa_stack_get_nth_rev(stack, GET_NEXT_TOKEN_INDEX);
 		if(token->variant == identif_function_var)  //je to volani funkce
 		{
+			//token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 			if(FCALL_nt(stack, global_symbtab, local_symbtab, new_data_type) != 0)
 			{
 				return 1;
-			}else
-			{
-				//gen funkci
-				
 			}
 
 			if(new_data_type[strlen(new_data_type)-1] == 'n')
@@ -846,6 +838,9 @@ int CYC_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbt
     return 0;
 }
 
+#define free_fcall()\
+free(types);\
+
 int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_symbtab, char *return_type)
 {
 	//token variant has to be an identif_function_var ie. the f_id
@@ -854,6 +849,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 	char *types = (char *)malloc(1);
 	if(types == NULL)
 	{
+		free_fcall();
 		ERROR_OUT("\nChyba na řádku: %d\nchyba při alokaci paměti\n", token->line_num, 99);
 	}
 	types[0] = '\0';
@@ -863,6 +859,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 		//in global scope
 		if((searched_node = bst_search((*global_symbtab), token->content)) == NULL)
 		{
+			free_fcall();
 			ERROR_OUT("\nChyba na řádku: %d\nfunkce nebyla definována před použitím\n", token->line_num, 3);
 		}
 		else
@@ -884,10 +881,12 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 			{
 				printf("PUSHFRAME\n");
 				printf("CALL %s-call\n", token->content);
+				free_fcall();
 				return 0;
 			}
 			else
 			{
+				free_fcall();
 				return 1;
 			}
 		}
@@ -933,6 +932,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 							}
 							else
 							{
+								free_fcall();
 								ERROR_OUT("\nChyba na řádku: %d\nnavratová hodnota není klíčové slovo\n", token->line_num, 2);
 							}
 							//end the search
@@ -944,6 +944,7 @@ int FCALL_nt(stack_t *stack, bst_node_t **global_symbtab, bst_node_t **local_sym
 end_loop:
 			if(!found)
 			{
+				free_fcall();
 				ERROR_OUT("\nChyba na řádku: %d\nfunkce nebyla definována před použitím\n", token->line_num, 3);
 			}
 			else
@@ -960,9 +961,11 @@ end_loop:
 				}
 				if(TL_nt(stack, types, local_symbtab) == 0)
 				{
+					free_fcall();
 					return 0;
 				}else
 				{
+					free_fcall();
 					return 1;
 				}
 			}
@@ -978,13 +981,16 @@ end_loop:
 			{
 				printf("PUSHFRAME\n");
 				printf("CALL %s-call\n", token->content);
+				free_fcall();
 				return 0;
 			}else
 			{
+				free_fcall();
 				return 1;
 			}
 		}
 	}
+	free_fcall();
 	return 0;
 }
 
@@ -994,6 +1000,7 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 {
 	token_t *token = next_stack_token(stack, &GET_NEXT_TOKEN_INDEX);
 	stack_t *all_params_stack = NULL;
+	//all_params_stack is automatically disposed
 	all_params_stack = psa_stack_init();
 	int check_types_index = 0;
 
@@ -1064,6 +1071,7 @@ int TL_nt(stack_t *stack, char *types, bst_node_t **symbtab)
 		print_token = psa_stack_top_term(all_params_stack);
 		printf("PUSH ");
 		parse_switch(print_token, "LF");
+		//invalid free?
 		if(psa_stack_pop(all_params_stack) == -1)
 		{
 				ERROR_OUT("\nChyba na řádku: %d\nChyba při realokaci paměti\n", token->line_num, 99);
